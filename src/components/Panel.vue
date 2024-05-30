@@ -5,7 +5,7 @@
             <p class="subtitle">您可以输入用户名来添加好友。记得区分大小写哦！</p>
             <p class="input-wrap flex-center">
                 <input type="text" class="input line" v-model="to" placeholder="输入用户名" maxlength="15">
-                <button class="btn line" ref="applyFriend_btn" :class="{active: friendSearchActive}">发送好友请求</button>
+                <button class="btn line" :class="{active: to.length}" @click="to.length ? applyFriend : undefined">发送好友请求</button>
             </p>
         </div>
         <div class="addGroup-wrap">
@@ -13,7 +13,7 @@
             <p class="subtitle">您可以输入群组名来搜索群组。记得区分大小写哦！</p>
             <p class="input-wrap flex-center">
                 <input type="text" class="input line" v-model="groupName" placeholder="输入群组名" maxlength="13">
-                <button class="btn line" ref="searchGroup_btn" :class="{active: groupSearchActive}">查找</button>
+                <button class="btn line" :class="{active: groupName.length}" @click="groupName.length ? applyGroup : undefined">查找</button>
             </p>
             <ul class="list-wrap scrollbar">
                 <li class="item-wrap" v-for="group of groupList" :key="group._id">
@@ -33,85 +33,61 @@
         </div>
     </div>
 </template>
-<script>
-import imgMixin from '@/mixin/imgMixin.js'
-export default {
-    name: 'Panel',
-    mixins: [imgMixin],
-    data(){
-        return {
-            to: '',
-            groupName: '',
-            groupList: [],
-            friendSearchActive: false,
-            groupSearchActive: false
+
+<script setup>
+import { ref } from 'vue';
+import { getGroupAvatar } from '@/utils/pathResolver'
+import { useUserStore } from '@/store/user'
+import { usePageStore } from '@/store/page'
+import { applyFriendAPI } from '@/api/friend'
+import { applyGroupAPI, getGroupsByNameAPI } from '@/api/group'
+
+const userStore = useUserStore(),
+    pageStore = usePageStore()
+
+const to = ref(''),
+    groupName = ref(''),
+    groupList = ref([])
+
+// 申请添加好友
+function applyFriend(){
+    if(!userStore.user.username || to.value.trim().length === 0) return (this?.$message || console).error('信息不能为空')
+    if(to.value === userStore.user.username) return (this?.$message || console).warning('请不要添加你自己！')
+    applyFriendAPI(userStore.user._id, to.value).then((resp)=>{
+        if(resp.code === 200) {
+            (this?.$message || console).success(resp.msg)
+        }else{
+            (this?.$message || console).error(resp.msg)
         }
-    },
-    computed:{
-        user(){
-            return this.$store.getters['userAbout/getUser']
+    })
+}
+
+// 申请加入群组
+function applyGroup(to){
+    applyGroupAPI(userStore.user._id, to.value).then((resp)=>{
+        if(resp.code === 200) {
+            (this?.$message || console).success(resp.msg)
+        }else{
+            (this?.$message || console).error(resp.msg)
         }
-    },
-    methods:{
-        // 申请添加好友
-        applyFriend(){
-            if(!this.user.username || this.to.trim().length === 0) return this.$message.error('信息不能为空')
-            if(this.to === this.user.username) return this.$message.warning('请不要添加你自己！')
-            this.$axios.post('/api/applyFriend', {userId: this.user._id, username: this.to}).then((resp)=>{
-                if(resp.code === 200) {
-                    this.$message.success(resp.msg)
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 申请加入群组
-        applyGroup(to){
-            this.$axios.post('/api/applyGroup', {userId: this.user._id, groupId: to}).then((resp)=>{
-                if(resp.code === 200) {
-                    this.$message.success(resp.msg)
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 搜索群组
-        getGroupsByName(){
-            if(this.groupName.trim().length === 0) return this.$message.error('信息不能为空')
-            this.$axios.post('/api/getGroupsByName', {groupName: this.groupName}).then((resp)=>{
-                if(resp.code === 200) {
-                    this.groupList = resp.data
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 进入探索页面
-        enterDiscovery(){
-            this.$bus.$emit('enterPage', {type:3})
+    })
+}
+
+// 搜索群组
+function getGroupsByName(){
+    if(groupName.value.trim().length === 0) return (this?.$message || console).error('信息不能为空')
+    getGroupsByNameAPI(groupName.value).then((resp)=>{
+        if(resp.code === 200) {
+            groupList.value = resp.data
+        }else{
+            (this?.$message || console).error(resp.msg)
         }
-    },
-    watch:{
-        // 控制按钮样式
-        to(newV,oldV){
-            if(newV.length > 0) {
-                this.friendSearchActive = true;
-                this.$refs.applyFriend_btn.onclick = this.applyFriend
-            }else{
-                this.friendSearchActive = false;
-                this.$refs.applyFriend_btn.onclick = null
-            } 
-        },
-        groupName(newV,oldV){
-            if(newV.length > 0) {
-                this.groupSearchActive = true;
-                this.$refs.searchGroup_btn.onclick = this.getGroupsByName
-            }else{
-                this.groupSearchActive = false;
-                this.$refs.searchGroup_btn.onclick = null
-            } 
-        },
-    }
+    })
+}
+
+// 进入探索页面
+function enterDiscovery(){
+    pageStore.enterPage({type:3})
 }
 </script>
 <style lang="less" scoped>

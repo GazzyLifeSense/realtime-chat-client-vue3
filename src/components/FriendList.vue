@@ -17,63 +17,46 @@
     </div>
 </template>
 
-<script>
-
+<script setup>
+import { onBeforeMount, reactive, watch } from 'vue'
 import ContextMenu from './ContextMenu.vue'
-import imgMixin from '@/mixin/imgMixin.js'
-export default {
-    components: {ContextMenu},
-    mixins: [imgMixin],
-    data(){
-        return{
-            contextMenuConfig:{
-                x: null, y: null, display:'none'
-            }
-        }
-    },
-    computed:{
-        userId(){
-            return this.$store.getters['userAbout/getUserId']
-        },
-        friendList(){
-            return this.$store.getters['friendAbout/getFriendList']
-        },
-    },
-    watch:{
-        userId(newV, oldV){
-             // 获取好友列表
-            this.refreshFriendList()
-        }
-    },
-    methods:{
-        enterPrivateChat(to){
-            this.$bus.$emit('enterPage', {type:1, to})
-            this.$store.commit('friendAbout/Reset_Friend_hasNew', to._id)
-            this.$store.commit('messageAbout/Reset_Message', to._id)
-        },
-        showMenu(to){
-            this.contextMenuConfig = {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 1, to}
-        },
-        refreshFriendList(){
-            this.$bus.$off('refreshFriendList')
-            this.$axios.post('/api/getFriends', {userId: this.userId}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$store.commit("friendAbout/Set_FriendList", resp.data)
-                }else{
-                    this.$message.error(resp.msg)
-                }
-                this.$bus.$on('refreshFriendList', this.refreshFriendList)
-            })
-        }
-    },
-    created(){
-        if(this.userId != null){ this.refreshFriendList() }
-        this.$bus.$on('refreshFriendList', this.refreshFriendList)
-    },
-    destroyed(){
-        this.$bus.$off('refreshFriendList')
-    }
+import { getUserAvatar } from '@/utils/pathResolver'
+import { useUserStore } from '@/store/user'
+import { usePageStore } from '@/store/page'
+import { useFriendStore } from '@/store/friend'
+import { getFriendListAPI } from '@/api/friend'
+import { useMessageStore } from '@/store/message'
+
+const userStore = useUserStore(),
+    pageStore = usePageStore(),
+    friendStore = useFriendStore(),
+    messageStore = useMessageStore()
+
+const contextMenuConfig = reactive({
+    x: null, y: null, display:'none'
+})
+
+// 按新消息时间排序
+const friendList = computed(()=>friendStore.friendList.sort((a,b)=>a.hasNew > b.hasNew))
+
+watch(() => user._id, () => {
+    // 刷新好友列表
+    friendStore.getFriendList()
+})
+
+// 进入私聊
+function enterPrivateChat(to){
+    pageStore.enterPage({type:1, to})
+    friendStore.setFriendNewStatus(to._id)
 }
+
+function showMenu(to){
+    contextMenuConfig = {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 1, to}
+}
+
+onBeforeMount(()=>{
+    if(userStore.user._id != null){ friendStore.getFriendList() }
+})
 </script>
 
 <style lang="less" scoped>

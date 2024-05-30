@@ -99,118 +99,90 @@
     </div>
 </template>
 
-<script>
-import imgMixin from '@/mixin/imgMixin.js'
+<script setup>
+import { reactive, ref, watch } from 'vue';
+import { getGroupAvatar } from '@/utils/pathResolver'
 import MessageList from '@/components/MessageList.vue'
-export default {
-    name: 'SideBar',
-    mixins: [imgMixin],
-    components: {MessageList},
-    data(){
-        return {
-            show: 'none',
-            type: '',
-            groupName: '',
-            groupId: '',
-            isFold: false,
-            messageListConfig: {display: 'none'}
-        }
-    },
-    computed:{
-        user(){
-            return this.$store.getters['userAbout/getUser']
-        },
-        messageList(){
-            return this.$store.getters['messageAbout/getMessageList']
-        },
-        groupList(){
-            return this.$store.getters['groupAbout/getGroupList']
-        },
-        page(){
-            return this.$store.getters['pageAbout/getPage']
-        }
-    },
-    watch:{
-        user(newV, oldV){
-            // 获取申请信息数
-            this.refreshGroupList()
-        }
-    },
-    methods:{
-        // 返回首页
-        enterMainPage(){
-            this.$bus.$emit('enterPage', {})
-        },
-        // 创建群组
-        createGroup(){
-            if(this.type === '') {
-                this.$message.warning('请选择服务器类型！')
-                return
-            }else if(this.groupName === ''){
-                this.$message.warning('请输入服务器名称！')
-                return
-            }
-            this.$axios.post('/api/createGroup', {groupName: this.groupName, userId: this.user._id, type: this.type}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$message.success(resp.msg)
-                    this.refreshGroupList()
-                    this.show = 'none'
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 切换群组种类
-        switchType(type){
-            this.type = type
-        },
-        // 进入群组聊天
-        enterGroup(to){
-            this.$bus.$emit('enterPage', {type:2,to})
-            this.$store.commit('groupAbout/Reset_Group_hasNew', to._id)
-        },
-        // 申请加入群组
-        addGroup(){
-            this.$axios.post('/api/applyGroup', {userId: this.user._id, groupId: this.groupId}).then((resp)=>{
-                if(resp.code === 200)
-                    this.$message.success(resp.msg)
-                else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 进入探索页面
-        enterDiscovery(){
-            this.$bus.$emit('enterPage', {type:3})
-        },
-        // 刷新群组列表
-        refreshGroupList(){
-            this.$bus.$off('refreshGroupList')
-            this.$axios.post('/api/getGroups', {userId: this.user._id}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$store.commit("groupAbout/Set_GroupList", resp.data)
-                }           
-                else{
-                    this.$message.error(resp.msg)
-                }
-                this.$bus.$on('refreshGroupList', this.refreshGroupList)
-            })
-        },
-        showNewMsgList(){
-            this.messageListConfig.display='flex'
-        },
-        fold(){
-            this.$bus.$emit('fold')
-            this.isFold = !this.isFold
-        }
-    },
-    mounted(){
-        this.$bus.$on('refreshGroupList', this.refreshGroupList)
-    },
-    destroyed(){
-        this.$bus.$off('refreshGroupList')
-    }
+import { useUserStore } from '@/store/user'
+import { usePageStore } from '@/store/page'
+import { useMessageStore } from '@/store/message'
+import { useFriendStore } from '@/store/friend'
+import { useGroupStore } from '@/store/group'
+import { applyGroupAPI, createGroupAPI } from '@/api/group';
+
+const userStore = useUserStore(),
+    pageStore = usePageStore(),
+    messageStore = useMessageStore(),
+    friendStore = useFriendStore(),
+    groupStore = useGroupStore()
+
+const show = ref('none'),
+    type = ref(''),
+    groupName = ref(''),
+    groupId = ref(''),
+    isFold = ref(false),
+    messageListConfig = reactive({ display: 'none' })
+
+watch(() => userStore.user, () => {
+    groupStore.getGroupList()
+}, { deep: true })
+    
+
+// 返回首页
+function enterMainPage(){
+    pageStore.enterPage()
 }
+// 创建群组
+function createGroup(){
+    if(this.type === '') {
+        (this?.$message || console).warning('请选择服务器类型！')
+        return
+    }else if(this.groupName === ''){
+        (this?.$message || console).warning('请输入服务器名称！')
+        return
+    }
+    createGroupAPI(groupName.value, userStore.user._id, type.value).then((resp)=>{
+        if(resp.code === 200){
+            (this?.$message || console).success(resp.msg)
+            groupStore.getGroupList()
+            show.value = 'none'
+        }else{
+            (this?.$message || console).error(resp.msg)
+        }
+    })
+}
+// 切换群组种类
+function switchType(targetType){
+    type.value = targetType
+}
+// 进入群组聊天
+function enterGroup(to){
+    pageStore.enterPage({type:2,to})
+}
+// 申请加入群组
+function addGroup(){
+    applyGroupAPI(userStore.user._id, groupId.value).then((resp)=>{
+        if(resp.code === 200)
+            (this?.$message || console).success(resp.msg)
+        else{
+            (this?.$message || console).error(resp.msg)
+        }
+    })
+}
+// 进入探索页面
+function enterDiscovery(){
+    pageStore.enterPage({type:3})
+}
+
+function showNewMsgList(){
+    messageListConfig.display='flex'
+}
+
+function fold(){
+    this.$bus.$emit('fold')
+    isFold.value = !isFold.value
+}
+    
 </script>
 
 <style lang="less" scoped>

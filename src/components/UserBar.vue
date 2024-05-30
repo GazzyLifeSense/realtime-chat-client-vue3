@@ -1,6 +1,6 @@
 <template>
     <div id="userbar">
-        <div class="profile flex-center" @click="switchDetailOpen()">
+        <div class="profile flex-center" @click="userDetailOpen = !userDetailOpen">
             <a class="avatar-wrap flex-center">
                 <img :src="getUserAvatar(user.avatar)" class="avatar" alt="头">
                 <div class="online"></div>
@@ -11,7 +11,7 @@
         <div class="func-btn-wrap flex-center">
             <div class="func-btn flex-center" @click="getApplies">
                 <img src="@/assets/待处理申请.svg">
-                <div class="pot flex-center" v-if="applyCount>0">{{applyCount}}</div>
+                <div class="pot flex-center" v-if="userStore.applyCount">{{userStore.applyCount}}</div>
             </div>
 
             <div class="func-btn flex-center">
@@ -20,7 +20,7 @@
         </div>
         
 
-        <div class="backdrop flex-center" :style={display:show} @click.self="show='none'">
+        <div class="backdrop flex-center" :style="{display: showApplyList ? 'flex' : 'none'}" @click.self="showApplyList = !showApplyList">
             <div class="apply-list-wrap">
                 <div class="apply-friend-list" ref="applyFriendList">
                     <h2 class="title">好友申请</h2>
@@ -53,136 +53,110 @@
         </div>
     </div>
 </template>
-<script>
+<script setup>
 import UserDetail from '@/components/UserDetail.vue'
-import imgMixin  from '@/mixin/imgMixin.js'
-export default {
-    name: 'UserBar',
-    components: {UserDetail},
-    mixins: [imgMixin],
-    data(){
-        return{
-            show: 'none',
-            applyFriendList: [],
-            applyGroupList: [],
-            applyCount: 0,
-            userDetailOpen: false
+import { getUserAvatar } from '@/utils/pathResolver';
+import { useUserStore } from '@/store/user';
+import { useFriendStore } from '@/store/friend'
+import {
+    getFriendAppliesAPI, getGroupAppliesAPI,
+    acceptFriendApplyAPI, rejectFriendApplyAPI, acceptGroupApplyAPI, rejectGroupApplyAPI
+} from '@/api/user'
+
+const userStore = useUserStore(),
+    friendStore = useFriendStore()
+
+const showApplyList = ref(false),
+    applyFriendList = ref([]),
+    applyGroupList = ref([]),
+    userDetailOpen = ref(false)
+
+watch(() => userStore.user, () => {
+    userStore.getAppliesCount()
+})
+
+// 获取申请信息列表
+function getApplies(){
+    showApplyList.value = true;
+    getFriendApplies()
+    getGroupApplies()
+}
+
+function getFriendApplies(){
+    getFriendAppliesAPI(userStore.user._id).then((resp)=>{
+        if(resp.code === 200){
+            applyFriendList.value = resp.data
+        }else{
+            (this?.$message || console).error('好友申请获取失败！')
         }
-    },
-    computed:{
-        user(){
-            return this.$store.getters['userAbout/getUser']
+    })
+}
+
+function getGroupApplies(){
+    getGroupAppliesAPI(userStore.user._id).then((resp)=>{
+        if(resp.code === 200){
+            applyGroupList.value = resp.data
+        }else{
+            (this?.$message || console).error('群组申请获取失败！')
         }
-    },
-    watch:{
-        user(newV, oldV){
-            // 获取申请信息数
-            this.hasApplies()
+    })
+}
+
+// 接受好友申请
+function acceptFriendApply(user){
+    acceptFriendApplyAPI(user.apply.from, user.apply.to).then((resp)=>{
+        if(resp.code === 200){
+            (this?.$message || console).success(resp.msg)
+            getFriendApplies()
+            friendStore.getFriendList()
+            userStore.getAppliesCount()
+        }else{
+            (this?.$message || console).error(resp.msg)
         }
-    },
-    methods:{
-        hasApplies(){
-            this.$axios.post('/api/hasApplies', {userId: this.user._id}).then((resp)=>{
-                if(resp.code === 200){
-                    this.applyCount = resp.data
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        getApplies(){
-            this.show = 'flex';
-            this.getFriendApplies()
-            this.getGroupApplies()
-        },
-        getFriendApplies(){
-            this.$axios.post('/api/getFriendApplies', {userId: this.user._id}).then((resp)=>{
-                if(resp.code === 200){
-                    this.applyFriendList = resp.data
-                }else{
-                    this.$message.error('好友申请获取失败！')
-                }
-            })
-        },
-        getGroupApplies(){
-            this.$axios.post('/api/getGroupApplies', {userId: this.user._id}).then((resp)=>{
-                if(resp.code === 200){
-                    this.applyGroupList = resp.data
-                }else{
-                    this.$message.error('群组申请获取失败！')
-                }
-            })
-        },
-        // 接受好友申请
-        acceptFriendApply(user){
-            this.$axios.post('/api/acceptFriendApply', {from: user.apply.from, userId: user.apply.to}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$message.success(resp.msg)
-                    this.getFriendApplies()
-                    this.$bus.$emit('refreshFriendList')
-                    if(this.applyCount > 0)
-                        this.applyCount -= 1
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 拒绝好友申请
-        rejectFriendApply(user){
-            this.$axios.post('/api/rejectFriendApply', {from: user.apply.from, userId: user.apply.to}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$message.success(resp.msg)
-                    this.getFriendApplies()
-                    this.$bus.$emit('refreshFriendList')
-                    if(this.applyCount > 0)
-                        this.applyCount -= 1
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 接受群组申请
-        acceptGroupApply(apply){
-            this.$axios.post('/api/acceptGroupApply', {from: apply.from, groupId: apply.to}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$message.success(resp.msg)
-                    this.getGroupApplies()
-                    if(this.applyCount > 0)
-                        this.applyCount -= 1
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        // 拒绝群组申请
-        rejectGroupApply(apply){
-            this.$axios.post('/api/rejectGroupApply', {from: apply.from, groupId: apply.to}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$message.success(resp.msg)
-                    this.getGroupApplies()
-                    if(this.applyCount > 0)
-                        this.applyCount -= 1
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        switchDetailOpen(){
-            this.userDetailOpen = !this.userDetailOpen
-        },
-    },
-    mounted(){
-        this.$bus.$on('refreshApplies', this.hasApplies)
-        this.$bus.$on('getApplies', this.getApplies)
-    },
-    destroyed(){
-        this.$bus.$off('refreshApplies')
-        this.$bus.$off('getApplies')
-    }
+    })
+}
+
+// 拒绝好友申请
+function rejectFriendApply(user){
+    rejectFriendApplyAPI(user.apply.from, user.apply.to).then((resp)=>{
+        if(resp.code === 200){
+            (this?.$message || console).success(resp.msg)
+            getFriendApplies()
+            friendStore.getFriendList()
+            userStore.getAppliesCount()
+        }else{
+            (this?.$message || console).error(resp.msg)
+        }
+    })
+}
+
+// 接受群组申请
+function acceptGroupApply(apply){
+    acceptGroupApplyAPI(apply.from, apply.to).then((resp)=>{
+        if(resp.code === 200){
+            (this?.$message || console).success(resp.msg)
+            getGroupApplies()
+            userStore.getAppliesCount()
+        }else{
+            (this?.$message || console).error(resp.msg)
+        }
+    })
+}
+
+// 拒绝群组申请
+function rejectGroupApply(apply){
+    rejectGroupApplyAPI(apply.from, apply.to).then((resp)=>{
+        if(resp.code === 200){
+            (this?.$message || console).success(resp.msg)
+            getGroupApplies()
+            userStore.getAppliesCount()
+        }else{
+            (this?.$message || console).error(resp.msg)
+        }
+    })
 }
 </script>
 <style lang="less" scoped>
-
 #userbar{
     width: 100%;
     display: flex;

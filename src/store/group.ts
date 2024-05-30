@@ -1,13 +1,36 @@
 import { defineStore } from 'pinia'
+import { useUserStore } from './user'
+import { getGroupListAPI, getMemberListAPI } from '@/api/group'
+import { ResponseType } from '@/types/request'
 
 export const useGroupStore = defineStore('group',{
-    state: ():{
-        groupList: {_id: string, banner: string, hasNew: string}[], memberList: {}[]
-    }=>({
-        groupList: [],
-        memberList: [],
+    state: ()=>({
+        currentGroupId: '',
+        groupList: [] as {_id: string, banner: string, hasNew: number}[],
+        memberList: [] as any[],
     }),
     actions:{
+        // 获取群组列表
+        getGroupList(){
+            const userStore = useUserStore()
+            getGroupListAPI(userStore.user._id).then((resp: ResponseType)=>{
+                if(resp.code === 200){
+                    this.groupList = resp.data
+                }else{
+                    (this?.$message || console).error(resp.msg)
+                }
+            })
+        },
+        // 获取成员列表
+        getMemberList(){
+            getMemberListAPI(this.currentGroupId).then((resp: ResponseType)=>{
+                if(resp.code === 200) {
+                    this.memberList = resp.data
+                }else{
+                    (this?.$message || console).error(resp.msg)
+                }
+            })
+        },
         updateGroupAvatar(value){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
@@ -22,35 +45,24 @@ export const useGroupStore = defineStore('group',{
                 }
             }
         },
-        Update_Description(value){
+        updateDescription(value){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
                     this.groupList[i],'description',value[1]
                 }
             }
         },
-        Update_Owner(value){
+        updateOwner(value){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
                     this.groupList[i].owner = value[1]
                 }
             }
         },
-        Set_Group_hasNew(value){
-            let group = {}
+        setGroupNewStatus(targetId: string, value: number = 0){
             for(let i = 0; i < this.groupList.length; i++){
-                if(this.groupList[i]._id == value){
-                    this.groupList[i].hasNew = 'new'
-                    group = this.groupList[i]
-                    this.groupList.splice(i,1)
-                    this.groupList.unshift(group)
-                }
-            }
-        },
-        Reset_Group_hasNew(value){
-            for(let i = 0; i < this.groupList.length; i++){
-                if(this.groupList[i]._id == value){
-                    this.groupList[i].hasNew = ''
+                if(this.groupList[i]._id == targetId){
+                    this.groupList[i].hasNew = value
                 }
             }
         },

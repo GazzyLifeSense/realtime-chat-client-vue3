@@ -61,145 +61,142 @@
     </div>
 </template>
 
-<script>
-import imgMixin from '@/mixin/imgMixin.js'
-export default {
-    name: 'userDetail',
-    props: ['open'],
-    mixins: [imgMixin],
-    methods:{
-        hide(){
-            this.open = false
-        },
-        getFile(e){
-            let file = e.target.files[0]
-            if(file.size/1024/1024 > 1){
-                return this.$message.warning('文件大小超过5MB限制！')
-            }
-            let formData = new FormData();
-            formData.append('userId', this.user._id)
-            formData.append('filename', file.name)
-            formData.append('fileType', file.type)
-            var reader = new FileReader()
-            reader.readAsDataURL(file)
-            var that = this
-            reader.onload = function(){
-                formData.append('file', this.result)
-                that.$axios.post('api/uploadAvatar',formData,{ headers:{ 'Content-Type': 'multipart/formdata'}}).then((resp)=>{
-                    if(resp.code === 200){
-                        that.$message.success(resp.msg)
-                        that.$store.commit("userAbout/Set_Avatar", resp.data)
-                    }else{
-                        that.$message.error(resp.msg)
-                    }
-                })
-            }
-        },
-        uploadAvatar(){
-            this.$refs.file.click()
-        },
-        updateNickname(){
-            this.$prompt('长度<8',"输入昵称",{
-                confirmButtonText: '提交',
-                cancelButtonText: '取消',
-                inputValidator: (data)=>{
-                    if(data.length <= 8) return true
-                    return false
-                },
-                inputErrorMessage: '格式不正确'
-            }).then(({value})=>{
-                let nickname = value.trim()
-                if(nickname.length == 0 || nickname.length > 8){
-                    return this.$message.warning('超出长度(8)!'); 
-                }
-                this.$axios.post('/api/updateNickname', {userId: this.user._id, nickname: value}).then((resp)=>{
-                    if(resp.code === 200){
-                        this.$message.success(resp.msg)
-                        this.$store.commit('userAbout/Set_Nickname', resp.data)
-                    }else{
-                        this.$message.error('修改失败！')
-                    }
-                })
-            }).catch(()=>{
-                this.$message.info('取消操作');   
-            })
-        },
-        updateIntroduction(){
-            this.$prompt('长度<25',"输入个人介绍",{
-                confirmButtonText: '提交',
-                cancelButtonText: '取消',
-                inputValidator: (data)=>{
-                    if(data.length <= 25) return true
-                    return false
-                },
-                inputErrorMessage: '格式不正确'
-            }).then(({value})=>{
-                let introduction = value.trim()
-                if(introduction.length == 0 || introduction.length > 25){
-                    return this.$message.warning('超出长度(25)!'); 
-                }
-                this.$axios.post('/api/updateIntroduction', {userId: this.user._id, introduction: value}).then((resp)=>{
-                    if(resp.code === 200){
-                        this.$message.success(resp.msg)
-                        this.$store.commit('userAbout/Set_Introduction', resp.data)
-                    }else{
-                        this.$message.error('修改失败！')
-                    }
-                })
-            }).catch(()=>{
-                this.$message.info('取消操作');   
-            })
-        },
-        updatePassword(){
-            this.$prompt('长度<15',"输入当前密码",{
-                confirmButtonText: '提交',
-                cancelButtonText: '取消',
-                inputType: 'password',
-                inputValidator: (data)=>{
-                    if(data.length <= 15) return true
-                    return false
-                },
-                inputErrorMessage: '格式不正确'
-            }).then(({value})=>{
-                let password = value
-                this.$prompt('长度<15',"输入新密码",{
-                confirmButtonText: '提交',
-                cancelButtonText: '取消',
-                inputType: 'password',
-                inputValidator: (data)=>{
-                    if(data.length <= 15) return true
-                    return false
-                },
-                inputErrorMessage: '格式不正确'
-                }).then(({value})=>{
-                    let newPassword = value
-                    this.$axios.post('/api/updatePassword', {userId: this.user._id, password, newPassword}).then((resp)=>{
-                        if(resp.code === 200){
-                            this.$message.success(resp.msg)
-                            this.$router.replace("/")
-                        }else{
-                            this.$message.error('修改失败！')
-                        }
-                    })
-                }).catch(()=>{
-                    this.$message.info('取消操作');   
-                })
-            }).catch(()=>{
-                this.$message.info('取消操作');   
-            })
-        },
-        // 注销
-        logout(){
-            sessionStorage.clear()
-            this.$socket.emit('logout')
-            this.$router.push('/')
-        }
-    },
-    computed:{
-        user(){
-            return this.$store.getters['userAbout/getUser']
-        }
+<script setup>
+import { getUserAvatar } from '@/utils/pathResolver'
+import { useUserStore } from '@/store/user'
+import { updatePasswordAPI, updateIntroductionAPI, updateNicknameAPI, uploadAvatarAPI } from '@/api/user';
+
+const props = defineProps({
+    open: null
+})
+
+const userStore = useUserStore()
+
+function hide(){
+    props.open = false
+}
+function getFile(e){
+    let file = e.target.files[0]
+    if(file.size/1024/1024 > 1){
+        return (this?.$message || console).warning('文件大小超过5MB限制！')
     }
+    let formData = new FormData();
+    formData.append('userId', this.user._id)
+    formData.append('filename', file.name)
+    formData.append('fileType', file.type)
+    var reader = new FileReader()
+    reader.readAsDataURL(file)
+    var that = this
+    reader.onload = function(){
+        formData.append('file', this.result)
+        uploadAvatarAPI(formData).then((resp)=>{
+            if(resp.code === 200){
+                that.$message.success(resp.msg)
+                userStore.user.avatar = resp.data;
+            }else{
+                that.$message.error(resp.msg)
+            }
+        })
+    }
+}
+function uploadAvatar(){
+    this.$refs.file.click()
+}
+function updateNickname(){
+    this.$prompt('长度<8',"输入昵称",{
+        confirmButtonText: '提交',
+        cancelButtonText: '取消',
+        inputValidator: (data)=>{
+            if(data.length <= 8) return true
+            return false
+        },
+        inputErrorMessage: '格式不正确'
+    }).then(({value})=>{
+        let nickname = value.trim()
+        if(nickname.length == 0 || nickname.length > 8){
+            return (this?.$message || console).warning('超出长度(8)!'); 
+        }
+        updateNicknameAPI(userStore.user._id, value).then((resp)=>{
+            if(resp.code === 200){
+                (this?.$message || console).success(resp.msg)
+                userStore.user.nickname = resp.data
+            }else{
+                (this?.$message || console).error('修改失败！')
+            }
+        })
+    }).catch(()=>{
+        (this?.$message || console).info('取消操作');   
+    })
+}
+function updateIntroduction(){
+    this.$prompt('长度<25',"输入个人介绍",{
+        confirmButtonText: '提交',
+        cancelButtonText: '取消',
+        inputValidator: (data)=>{
+            if(data.length <= 25) return true
+            return false
+        },
+        inputErrorMessage: '格式不正确'
+    }).then(({value})=>{
+        let introduction = value.trim()
+        if(introduction.length == 0 || introduction.length > 25){
+            return (this?.$message || console).warning('超出长度(25)!'); 
+        }
+        updateIntroductionAPI(userStore.user._id, value).then((resp)=>{
+            if(resp.code === 200){
+                (this?.$message || console).success(resp.msg)
+                this.$store.commit('userAbout/Set_Introduction', resp.data)
+            }else{
+                (this?.$message || console).error('修改失败！')
+            }
+        })
+    }).catch(()=>{
+        (this?.$message || console).info('取消操作');   
+    })
+}
+function updatePassword(){
+    this.$prompt('长度<15',"输入当前密码",{
+        confirmButtonText: '提交',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputValidator: (data)=>{
+            if(data.length <= 15) return true
+            return false
+        },
+        inputErrorMessage: '格式不正确'
+    }).then(({value})=>{
+        let password = value
+        this.$prompt('长度<15',"输入新密码",{
+        confirmButtonText: '提交',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputValidator: (data)=>{
+            if(data.length <= 15) return true
+            return false
+        },
+        inputErrorMessage: '格式不正确'
+        }).then(({value})=>{
+            let newPassword = value
+            updatePasswordAPI(userStore.user._id, password, newPassword).then((resp)=>{
+                if(resp.code === 200){
+                    (this?.$message || console).success(resp.msg)
+                    this.$router.replace("/")
+                }else{
+                    (this?.$message || console).error('修改失败！')
+                }
+            })
+        }).catch(()=>{
+            (this?.$message || console).info('取消操作');   
+        })
+    }).catch(()=>{
+        (this?.$message || console).info('取消操作');   
+    })
+}
+// 注销
+function logout(){
+    sessionStorage.clear()
+    this.$socket.emit('logout')
+    this.$router.push('/')
 }
 </script>
 

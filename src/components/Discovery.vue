@@ -26,47 +26,40 @@
         </div>
     </div>
 </template>
-<script>
-import imgMixin from '../mixin/imgMixin'
-export default {
-    mixins: [imgMixin],
-    data(){
-        return{
-            groupList:[]
-        }
-    },
-    computed:{
-        userId(){
-            return this.$store.getters['userAbout/getUserId']
-        }
-    },
-    methods:{
-        applyGroup(group){
-            this.$confirm(`是否申请添加群组：${group.name}`, '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                this.$axios.post('/api/applyGroup', {userId: this.userId, groupId: group._id}).then((resp)=>{
-                    if(resp.code === 200) {
-                        this.$message.success(resp.msg)
-                    }else{
-                        this.$message.error(resp.msg)
-                    }
-                })
-            })
-        }
-    },  
-    mounted(){
-        this.$axios.get('/api/getRecommandGroups').then((resp)=>{
+<script setup>
+import { getGroupBanner } from '@/utils/pathResolver'
+import { useUserStore } from '@/store/user'
+import { applyGroupAPI, getRecommendGroupListAPI } from '@/api/group';
+import { onBeforeMount } from 'vue';
+
+const userStore = useUserStore()
+const groupList = ref([])
+    
+function applyGroup(group){
+    this.$confirm(`是否申请添加群组：${group.name}`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+    }).then(() => {
+        applyGroupAPI(userStore.user._id, group._id).then((resp)=>{
             if(resp.code === 200) {
-                this.groupList = resp.data
+                (this?.$message || console).success(resp.msg)
             }else{
-                this.$message.error(resp.msg)
+                (this?.$message || console).error(resp.msg)
             }
         })
-    }
+    })
 }
+    
+onBeforeMount(()=>{
+    getRecommendGroupListAPI().then((resp)=>{
+        if(resp.code === 200) {
+            this.groupList = resp.data
+        }else{
+            (this?.$message || console).error(resp.msg)
+        }
+    })
+})
 </script>
 <style lang="less" scoped>
 #discovery{

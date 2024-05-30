@@ -1,7 +1,7 @@
 <template>
     <div id="userInfo" class="flex-center" ref='menu' :style="{display: config.display}">
          <div class="banner"></div>
-         <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hide">
+         <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="config.display='none'">
          <div class="avatar">
             <img :src="getUserAvatar(config.user?.avatar)" height="80" width="80">
             <div class="online">
@@ -51,40 +51,38 @@
     </div>
 </template>
 
-<script>
-import imgMixin from '@/mixin/imgMixin.js'
-export default {
-    name: 'userInfo',
-    props: ['config'],
-    mixins: [imgMixin],
-    computed:{
-        user(){
-            return this.$store.getters['userAbout/getUser']
+<script setup>
+import { applyFriendAPI } from '@/api/friend'
+import { getUserAvatar } from '@/utils/pathResolver'
+import { useUserStore } from '@/store/user'
+import { usePageStore } from '@/store/page'
+
+const props = defineProps({
+    config: {}
+})
+
+const userStore = useUserStore(),
+    pageStore = usePageStore()
+
+// 申请好友
+function applyFriend(){
+    applyFriendAPI({userId: userStore.user._id, username: props.config.user.username}).then((resp)=>{
+        if(resp.code === 200){
+            (this?.$message || console).success(resp.msg)
+        }else{
+            (this?.$message || console).error(resp.msg)
         }
-    },
-    methods:{
-        hide(){
-            this.config.display='none'
-        },
-        applyFriend(){
-            this.$axios.post('/api/applyFriend', {userId: this.user._id, username: this.config.user.username}).then((resp)=>{
-                if(resp.code === 200){
-                    this.$message.success(resp.msg)
-                }else{
-                    this.$message.error(resp.msg)
-                }
-            })
-        },
-        enterPrivateChat(to){
-            this.$bus.$emit('enterPage', {type:1, to})
-            this.config.display = 'none'
-            this.$store.commit('friendAbout/Reset_Friend_hasNew', to._id)
-        }
-    }
+    })
+}
+
+// 进入私聊
+function enterPrivateChat(to){
+    pageStore.enterPage({type:1, to})
+    props.config.display = 'none'
 }
 </script>
 
-<style lang="less" setup>
+<style lang="less" scoped>
 #userInfo{
     background: #232429;
     position: fixed;

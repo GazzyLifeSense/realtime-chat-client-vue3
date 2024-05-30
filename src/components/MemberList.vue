@@ -53,175 +53,147 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { reactive } from 'vue';
 import ContextMenu from './ContextMenu.vue'
-import mixin  from '@/mixin/imgMixin.js'
-export default {
-    components: {ContextMenu},
-    mixins: [mixin],
-    data(){
-        return{
-            memberList: [],
-            contextMenuConfig:{
-                x: null, y: null, display:'none'
-            },
-            isScroller: false,
-        }
-    },
-    computed:{
-        user(){
-            return this.$store.getters['userAbout/getUser']
-        },
-        page(){
-            return this.$store.getters['pageAbout/getPage']
-        }
-    },
-    methods:{
-        // 获取成员列表
-        getMemberList(){
-            // 此处为同步代码，防止事件重复触发
-            this.$bus.$off('refreshMemberList')
-            this.$axios.post('/api/getMembers', {groupId: this.page.to._id}).then((resp)=>{
-                if(resp.code === 200) {
-                    this.memberList = resp.data
-                    this.$store.commit("groupAbout/Set_MemberList", resp.data)
-                }else{
-                    this.$message.error(resp.msg)
-                }
-                // 异步完成后再次监听事件
-               this.$bus.$on('refreshMemberList', this.getMemberList)
-            })
-        },
-        showMenu(from, to){
-            if(to._id !== this.user._id) 
-                this.contextMenuConfig = {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 2, from, to}
-        },
-        // 获取用户上传的图像
-        getFile(e,mode){
-            let api = {1: '/api/uploadGroupAvatar', 2: '/api/uploadGroupBanner'}
-            let file = e.target.files[0]
+import { getUserAvatar, getGroupBanner } from '@/utils/pathResolver';
+import { useUserStore } from '@/store/user'
+import { usePageStore } from '@/store/page'
+import { useGroupStore } from '@/store/group'
+import { getMemberListAPI, updateGroupDescriptionAPI, exitGroupAPI, dismissGroupAPI, uploadGroupAvatarAPI, uploadGroupBannerAPI } from '@/api/group'
 
-            if(file.size/1024/1024 > 1){
-                return this.$message.warning('文件大小超过5MB限制！')
-            }
+const userStore = useUserStore(),
+    pageStore = usePageStore(),
+    groupStore = useGroupStore()
+const memberList = ref([])
+const contextMenuConfig = reactive({
+    x: null, y: null, display:'none'
+})
+const isScroller = ref(false)
 
-            // 封装formData 
-            let formData = new FormData();
-            formData.append('groupId', this.page.to._id)
-            formData.append('filename', file.name)
-            formData.append('fileType', file.type)
-            // 获取用户上传图片
-            var reader = new FileReader()
-            reader.readAsDataURL(file)
-            var that = this
-            reader.onload = function(e){
-                formData.append('file', this.result)
-                that.$axios.post(api[mode], formData,{ headers:{ 'Content-Type': 'multipart/formdata'}}).then((resp)=>{
-                    if(resp.code === 200){
-                        that.$message.success(resp.msg)
-                        // TODO 群组刷新
-                        if(mode == 1)
-                            that.$store.commit('groupAbout/Update_GroupAvatar', [that.page.to._id, resp.data])
-                        else if(mode == 2){
-                            that.$store.commit('groupAbout/Update_GroupBanner', [that.page.to._id, resp.data])
-                        }
-                    }else{
-                        that.$message.error(resp.msg)
-                    }
-                })
-            }
-           
-        },
-        // 修改群组简介
-        updateGroupDescription(){
-            this.$prompt('长度<=40',"输入群简介",{
-                confirmButtonText: '提交',
-                cancelButtonText: '取消',
-                inputValidator: (data)=>{
-                    if(data.length <= 40) return true
-                    return false
-                },
-                inputErrorMessage: '格式不正确'
-            }).then(({value})=>{
-                let description = value.trim()
-                if(description.length == 0 || description.length > 40){
-                    return this.$message.warning('超出长度(40)!'); 
-                }
-                this.$axios.post('/api/updateGroupDescription', {groupId: this.page.to._id, description: value}).then((resp)=>{
-                    if(resp.code === 200){
-                        this.$message.success(resp.msg)
-                        this.$store.commit('groupAbout/Update_Description', [this.page.to._id,resp.data])
-                    }else{
-                        this.$message.error('修改失败！')
-                    }
-                })
-            }).catch(()=>{
-                this.$message.info('取消操作');   
-            })
-        },
-        // 上传群组头像
-        uploadGroupAvatar(){
-            this.$refs.groupAvatar.click()
-        },
-        // 上传群组横幅
-        uploadGroupBanner(){
-            this.$refs.groupBanner.click()
-        },
-        // 退出群组
-        exitGroup(){
-            this.$confirm(`是否要退出群组：${this.page.to.name}`, '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                this.$axios.post('/api/exitGroup', {groupId:this.page.to._id, userId:this.user._id}).then((resp)=>{
-                    if(resp.code === 200){
-                        this.$message.success(resp.msg)
-                        // TODO 群组刷新
-                        this.$bus.$emit('refreshGroupList')
-                        this.$bus.$emit('enterPage',{})
-                    }else{
-                        this.$message.error(resp.msg)
-                    }
-                })
-            })
-        },
-        // 解散群组
-        dismissGroup(){
-            this.$confirm(`是否要解散群组：${this.page.to.name}`, '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                this.$axios.post('/api/dismissGroup', {groupId:this.page.to._id}).then((resp)=>{
-                    if(resp.code === 200){
-                        this.$message.success(resp.msg)
-                        // 群组刷新
-                        this.$bus.$emit('refreshGroupList')
-                        this.$bus.$emit('enterPage',{})
-                            
-                    }else{
-                        this.$message.error(resp.msg)
-                    }
-                })
-            })
+watch(()=>pageStore.page, ()=>{ this.getMemberList() }, {immediate: true})
+// 获取成员列表
+function getMemberList(){
+    getMemberListAPI(this.page.to._id).then((resp)=>{
+        if(resp.code === 200) {
+            this.memberList = resp.data
+            groupStore.memberList = resp.data
+        }else{
+            (this?.$message || console).error(resp.msg)
         }
-    },
-    watch:{
-        page:{
-            immediate: true,
-            deep: true,
-            handler(newV, oldV){
-                this.getMemberList()
-            }
-        }
-    },
-    created(){
-        this.$bus.$on('refreshMemberList', this.getMemberList)
-    },
-    destroyed(){
-        this.$bus.$off('refreshMemberList')
+    })
+}
+function showMenu(from, to){
+    if(to._id !== this.user._id) 
+        this.contextMenuConfig = {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 2, from, to}
+}
+// 获取用户上传的图像
+function getFile(e,mode){
+    let file = e.target.files[0]
+
+    if(file.size/1024/1024 > 1){
+        return (this?.$message || console).warning('文件大小超过5MB限制！')
     }
+
+    // 封装formData 
+    let formData = new FormData();
+    formData.append('groupId', this.page.to._id)
+    formData.append('filename', file.name)
+    formData.append('fileType', file.type)
+    // 获取用户上传图片
+    var reader = new FileReader()
+    reader.readAsDataURL(file)
+    var that = this
+    reader.onload = function(e){
+        formData.append('file', this.result)
+        (mode == 1 ? uploadGroupAvatarAPI : uploadGroupBannerAPI)(formData).then((resp)=>{
+            if(resp.code === 200){
+                that.$message.success(resp.msg)
+                // TODO 群组刷新
+                if(mode == 1)
+                    groupStore.updateGroupAvatar([that.page.to._id, resp.data])
+                else if(mode == 2){
+                    groupStore.updateGroupBanner([that.page.to._id, resp.data])
+                }
+            }else{
+                that.$message.error(resp.msg)
+            }
+        })
+    }
+    
+}
+// 修改群组简介
+function updateGroupDescription(){
+    this.$prompt('长度<=40',"输入群简介",{
+        confirmButtonText: '提交',
+        cancelButtonText: '取消',
+        inputValidator: (data)=>{
+            if(data.length <= 40) return true
+            return false
+        },
+        inputErrorMessage: '格式不正确'
+    }).then(({value})=>{
+        let description = value.trim()
+        if(description.length == 0 || description.length > 40){
+            return (this?.$message || console).warning('超出长度(40)!'); 
+        }
+        updateGroupDescriptionAPI(pageStore.page.to._id, value).then((resp)=>{
+            if(resp.code === 200){
+                (this?.$message || console).success(resp.msg)
+                this.$store.commit('groupAbout/Update_Description', [this.page.to._id,resp.data])
+            }else{
+                (this?.$message || console).error('修改失败！')
+            }
+        })
+    }).catch(()=>{
+        (this?.$message || console).info('取消操作');   
+    })
+}
+// 上传群组头像
+function uploadGroupAvatar(){
+    this.$refs.groupAvatar.click()
+}
+// 上传群组横幅
+function uploadGroupBanner(){
+    this.$refs.groupBanner.click()
+}
+// 退出群组
+function exitGroup(){
+    this.$confirm(`是否要退出群组：${this.page.to.name}`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+    }).then(() => {
+        exitGroupAPI(pageStore.page.to._id, userStore.user._id).then((resp)=>{
+            if(resp.code === 200){
+                (this?.$message || console).success(resp.msg)
+                groupStore.getGroupList()
+                pageStore.enterPage()
+            }else{
+                (this?.$message || console).error(resp.msg)
+            }
+        })
+    })
+}
+// 解散群组
+function dismissGroup(){
+    this.$confirm(`是否要解散群组：${this.page.to.name}`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+    }).then(() => {
+        dismissGroupAPI(pageStore.page.to._id).then((resp)=>{
+            if(resp.code === 200){
+                (this?.$message || console).success(resp.msg)
+                // 群组刷新
+                groupStore.getGroupList()
+                pageStore.enterPage()
+                    
+            }else{
+                (this?.$message || console).error(resp.msg)
+            }
+        })
+    })
 }
 </script>
 <style lang="less" scoped>

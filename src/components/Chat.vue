@@ -1,6 +1,6 @@
 <template>
     <div id="chat">
-        <div class="title">{{title}}</div>
+        <div class="title">{{pageStore.to.nickname || pageStore.to.name}}</div>
 
         <div class="chat-content" ref="msgBox">
 
@@ -76,247 +76,228 @@
     
 </template>
 
-<script>
+<script setup>
 import SparkMD5 from 'spark-md5'
-import imgMixin from '@/mixin/imgMixin.js'
+import { getUserAvatar, getChatPic } from '@/utils/pathResolver'
+import { isLink } from '@/utils'
 import emojiRegex from 'emoji-regex'
 import json from '@/assets/emoji/emoji.json'
-export default {
-  mixins: [imgMixin],
-  data(){
-      return{
-          msg: '',
-          color: 'white',
-          shake: false,
-          msgList: [],
-          users: [],
-          emojiList: json.data.split(','),
-          showEmojiList: false,
-      }
-  },
-  computed:{
-    title(){
-      return this.page.to.nickname?this.page.to.nickname:this.page.to.name
-    },
-    user(){
-      return this.$store.getters['userAbout/getUser']
-    },
-    friendList(){
-      return this.$store.getters['friendAbout/getFriendList']
-    },
-    memberList(){
-      return this.$store.getters['groupAbout/getMemberList']
-    },
-    page(){
-      return this.$store.getters['pageAbout/getPage']
+import { useUserStore } from '@/store/user'
+import { usePageStore } from '@/store/page'
+import { useFriendStore } from '@/store/friend'
+import { useGroupStore } from '@/store/group'
+import { inject, ref, watch } from 'vue'
+import { getPrivateMsgAPI } from '@/api/friend'
+import { sendPicAPI } from '@/api/message'
+
+const userStore = useUserStore(),
+  pageStore = usePageStore(),
+  friendStore = useFriendStore(),
+  groupStore = useGroupStore()
+    
+const msg = ref(''),
+  color = ref('white'),
+  shake = ref(false),
+  msgList = ref([]),
+  users = ref([]),
+  emojiList = ref(json.data.split(',')),
+  showEmojiList = ref(false),
+  socketInstance = inject('socketInstance')
+
+
+function name(_id){
+  for(let i = 0; i < groupStore.memberList.length; i++){
+    if(groupStore.memberList[i]._id === _id){
+      return groupStore.memberList[i].nickname
     }
-  },
-  methods:{
-    name(_id){
-      for(let i = 0; i < this.memberList.length; i++){
-        if(this.memberList[i]._id === _id){
-          return this.memberList[i].nickname
-        }
-      }
-      return "用户已离开本群组"
-    },
-    avatar(_id){
-      for(let i = 0; i < this.memberList.length; i++){
-        if(this.memberList[i]._id === _id){
-          return this.memberList[i].avatar
-        }
-      }
-      return "用户不存在"
-    },
-    sendMsg(){
-        if(this.msg.trim().length === 0) return this.$message.error('输入内容不能为空！');
+  }
+  return "用户已离开本群组"
+}
+function avatar(_id){
+  for(let i = 0; i < groupStore.memberList.length; i++){
+    if(groupStore.memberList[i]._id === _id){
+      return groupStore.memberList[i].avatar
+    }
+  }
+  return "用户不存在"
+}
+function sendMsg(){
+    if(msg.value.trim().length === 0) return (this?.$message || console).error('输入内容不能为空！');
 
-        this.msg = this.encodeEmoji(this.msg)
-        if(this.msg.length > 50) return this.$message.error('输入内容不得超过50字！')
-        
-        // 封装消息体，并推送事件到服务器
-        this.$socket.emit("sendMsg", {
-            token: sessionStorage.getItem('securityToken'),
-            from: this.user._id,
-            to: this.page.to._id,
-            content: this.msg,
-            type: this.page.position==='private'?1:2
-        });
-        // 重置输入框
-        this.msg = "";
-    },
-    getPic(e){
-      let file = e.target.files[0]
-      if(file.size/1024/1024 > 1){
-          return this.$message.warning('文件大小超过5MB限制！')
-      }
-      
-      // 封装请求数据体
-      let formData = new FormData();
-      formData.append('userId', this.user._id)
-      formData.append('to', this.page.to._id)
-      formData.append('filename', file.name)
-      formData.append('fileType', file.type)
-      formData.append('type', this.page.position==='private'?1:2)
+    msg.value = encodeEmoji(msg.value)
+    if(msg.value.length > 50) return (this?.$message || console).error('输入内容不得超过50字！')
+    
+    // 封装消息体，并推送事件到服务器
+    socketInstance.value.emit("sendMsg", {
+        token: sessionStorage.getItem('securityToken'),
+        from: userStore.user._id,
+        to: pageStore.page.to._id,
+        content: msg.value,
+        type: pageStore.page.position==='private'?1:2
+    });
+    // 重置输入框
+    msg.value = "";
+}
+function getPic(e){
+  let file = e.target.files[0]
+  if(file.size/1024/1024 > 1){
+      return (this?.$message || console).warning('文件大小超过5MB限制！')
+  }
+  
+  // 封装请求数据体
+  let formData = new FormData();
+  formData.append('userId', userStore.user._id)
+  formData.append('to', pageStore.page.to._id)
+  formData.append('filename', file.name)
+  formData.append('fileType', file.type)
+  formData.append('type', pageStore.page.position==='private'?1:2)
 
-      // 读取图片数据
-      let reader = new FileReader()
-      reader.readAsDataURL(file)
-      let that = this
-      reader.onload = async function(e){
-        if(e.target){
-          formData.append('file', e.target.result)
-          // 生成图片md5，避免相同图片重复上传
-          let hash = await SparkMD5.hash(e.target.result)
-          formData.append('hash', hash)
-          // 发送ajax请求
-          that.$axios.post('api/sendPic',formData,{ headers:{ 'Content-Type': 'multipart/formdata'}}).then((resp)=>{
-              if(resp.code === 200){
-                  that.$message.success(resp.msg)
-              }else{
-                  that.$message.error(resp.msg)
-              }
-          })
-        }else{
-          this.$message.error('上传失败')
-        }
-      }
-    },
-    sendPic(){
-      // 选择文件前，重置文input框内容，解决无法连续发送相同图片的问题
-      this.$refs.pic.value = ""
-      this.$refs.pic.click()
-    },
-    recvMsg(){
-      if(this.$socket?.connected){
-        this.$socket.on(this.user._id,(resp)=>{
-          console.log('callback2', this.page.to)
-          if([1,2].indexOf(resp.code) != -1){
-            let res_chat_id
-            let chat_id 
-
-            if(resp.code === 1){
-              res_chat_id = [resp.data.from, resp.data.to].sort().join('_')
-              chat_id = [this.user?._id, this.page.to?._id].sort().join('_')
-            }
-            
-            if((resp.code === 1 && res_chat_id === chat_id) || (resp.code === 2 && resp.data.to === this.page.to._id)){
-              this.msgList.push(resp.data)
-              console.log(this.msgList)
-              this.scrollToLatest()
-            }
+  // 读取图片数据
+  let reader = new FileReader()
+  reader.readAsDataURL(file)
+  let that = this
+  reader.onload = async function(e){
+    if(e.target){
+      formData.append('file', e.target.result)
+      // 生成图片md5，避免相同图片重复上传
+      let hash = await SparkMD5.hash(e.target.result)
+      formData.append('hash', hash)
+      // 发送ajax请求
+      sendPicAPI(formData).then((resp)=>{
+          if(resp.code === 200){
+              that.$message.success(resp.msg)
+          }else{
+              that.$message.error(resp.msg)
           }
-        })
-      }
-    },
-    // 判断是否为链接
-    isLink(content){
-      if(/^http/.test(content)) return true
-      return false
-    },
-    // 滚动到最新消息处
-    scrollToLatest(){
-      setTimeout(()=>{
-        if(this.$refs.msgBox)
-          this.$refs.msgBox.scrollTop = this.$refs.msgBox.scrollHeight
-      },200)
-    },
-      // 获取历史消息
-    getHistoryMsgs(){
-      if(this.page.position == 'private'){
-        this.$axios.post('/api/getPrivateMsgs',{to: this.page.to._id, userId: this.user._id, size: 15, time: -1}).then((resp)=>{
-          // 获取历史消息成功
-          if(resp.code === 200){
-            this.msgList = resp.data
-            this.scrollToLatest()
-          }else this.$message.error(resp.msg)
-        })
-      }
-      else if(this.page.position == 'group'){
-        this.$axios.post('/api/getGroupMsgs',{groupId: this.page.to._id, size: 15, time: -1}).then((resp)=>{
-          // 获取历史消息成功
-          if(resp.code === 200){
-            this.msgList = resp.data
-            this.scrollToLatest()
-          }else this.$message.error(resp.msg)
-        })
-      }
-    },
-    loadMoreMsgs(){
-      let time
-      if(this.msgList.length !== 0){
-        time = this.msgList[0].create_time 
-      }else{
-        time = -1
-      }
-      if(this.page.position == 'private'){
-        this.$axios.post('/api/getPrivateMsgs',{to: this.page.to._id, userId: this.user._id, size: 10, time}).then((resp)=>{
-          // 获取更多历史消息成功
-          if(resp.code === 200){
-            if(resp.data.length === 0) return this.$message.error('已经到顶了')
-              this.msgList.unshift(...resp.data)
-          } else this.$message.error('获取消息失败，请检查网络！')
-        })
-      }else if(this.page.position == 'group'){
-        this.$axios.post('/api/getGroupMsgs',{groupId: this.page.to._id, size: 10, time}).then((resp)=>{
-          // 获取更多历史消息成功
-          if(resp.code === 200){
-            if(resp.data.length === 0) return this.$message.error('已经到顶了')
-              this.msgList.unshift(...resp.data)
-          } else this.$message.error('获取消息失败，请检查网络！')
-        })
-      }
-    },
-    // 将表情编码
-    encodeEmoji(str){
-      const regex = emojiRegex()
-      return str.replace(regex, p => `emoji(${p.codePointAt(0)})`)
-    },
-    // 通过正则表达式解析文本中的表情
-    decodeEmoji(str){
-      const emojiDecodeRegex = /emoji\(\d+\)/g
-      return str.replace(emojiDecodeRegex, p => {
-        const filterP = p.replace(/[^\d]/g, '')
-        return String.fromCodePoint(filterP)
       })
-    },
-    showInfo(id, type){
-      this.$bus.$emit('showInfo', id, type)
+    }else{
+      (this?.$message || console).error('上传失败')
     }
-  },
-  watch:{
-    msg(newV, oldV){
-        if(this.encodeEmoji(newV).length >= 50){
-            this.color = 'red'
-            this.shake = true
-        }else{
-            this.color = 'white'
-            this.shake = false
+  }
+}
+function sendPic(){
+  // 选择文件前，重置文input框内容，解决无法连续发送相同图片的问题
+  this.$refs.pic.value = ""
+  this.$refs.pic.click()
+}
+function recvMsg(){
+  if(this.$socket?.connected){
+    this.$socket.on(userStore.user._id,(resp)=>{
+      console.log('callback2', pageStore.page.to)
+      if([1,2].indexOf(resp.code) != -1){
+        let res_chat_id
+        let chat_id 
+
+        if(resp.code === 1){
+          res_chat_id = [resp.data.from, resp.data.to].sort().join('_')
+          chat_id = [userStore.user?._id, pageStore.page.to?._id].sort().join('_')
         }
-    },
-    page:{
-      immediate: true,
-      deep: true,
-      handler(newV, oldV){
-        if(oldV && oldV.position == 'group' && oldV.to && oldV.to._id != newV.to._id){
+        
+        if((resp.code === 1 && res_chat_id === chat_id) || (resp.code === 2 && resp.data.to === pageStore.page.to._id)){
+          this.msgList.push(resp.data)
+          console.log(this.msgList)
+          this.scrollToLatest()
+        }
+      }
+    })
+  }
+}
+
+// 滚动到最新消息处
+function scrollToLatest(){
+  setTimeout(()=>{
+    if(this.$refs.msgBox)
+      this.$refs.msgBox.scrollTop = this.$refs.msgBox.scrollHeight
+  },200)
+}
+
+  // 获取历史消息
+function getHistoryMsgs(){
+  if(pageStore.page.position == 'private'){
+    getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 15,  -1).then((resp)=>{
+      // 获取历史消息成功
+      if(resp.code === 200){
+        this.msgList = resp.data
+        scrollToLatest()
+      }else (this?.$message || console).error(resp.msg)
+    })
+  }
+  else if(pageStore.page.position == 'group'){
+    getGroupMsgAPI(pageStore.page.to._id, 15, -1).then((resp)=>{
+      // 获取历史消息成功
+      if(resp.code === 200){
+        this.msgList = resp.data
+        scrollToLatest()
+      }else (this?.$message || console).error(resp.msg)
+    })
+  }
+}
+
+function loadMoreMsgs(){
+  let time
+  if(this.msgList.length !== 0){
+    time = this.msgList[0].create_time 
+  }else{
+    time = -1
+  }
+  if(pageStore.page.position == 'private'){
+    getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 10, time).then((resp)=>{
+      // 获取更多历史消息成功
+      if(resp.code === 200){
+        if(resp.data.length === 0) return (this?.$message || console).error('已经到顶了')
+          this.msgList.unshift(...resp.data)
+      } else (this?.$message || console).error('获取消息失败，请检查网络！')
+    })
+  }else if(pageStore.page.position == 'group'){
+    getPrivateMsgAPI(pageStore.page.to._id, 10, time).then((resp)=>{
+      // 获取更多历史消息成功
+      if(resp.code === 200){
+        if(resp.data.length === 0) return (this?.$message || console).error('已经到顶了')
+          this.msgList.unshift(...resp.data)
+      } else (this?.$message || console).error('获取消息失败，请检查网络！')
+    })
+  }
+}
+// 将表情编码
+function encodeEmoji(str){
+  const regex = emojiRegex()
+  return str.replace(regex, p => `emoji(${p.codePointAt(0)})`)
+}
+// 通过正则表达式解析文本中的表情
+function decodeEmoji(str){
+  const emojiDecodeRegex = /emoji\(\d+\)/g
+  return str.replace(emojiDecodeRegex, p => {
+    const filterP = p.replace(/[^\d]/g, '')
+    return String.fromCodePoint(filterP)
+  })
+}
+function showInfo(id, type){
+  this.$bus.$emit('showInfo', id, type)
+}
+
+    
+watch(msg, () => {
+  if(this.encodeEmoji(newV).length >= 50){
+          color.value = 'red'
+          shake.value = true
+      }else{
+          color.value = 'white'
+          shake.value = false
+      }
+})
+watch(pageStore.page, (newV, oldV) => {
+  if(oldV && oldV.position == 'group' && oldV.to && oldV.to._id != newV.to._id){
           this.$socket.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
         }
         // 获取历史消息
-        this.getHistoryMsgs()
-      }
-    }
-  },
-  created() {
-    this.$bus.$on('recvMsg', this.recvMsg)
-    this.$bus.$on('getMsg', this.getHistoryMsgs)
-    this.recvMsg()
-  },
-  destroyed(){
-    this.$bus.$off('recvMsg')
-    this.$bus.$off('getMsg')
-    this.$destroy()
-  }
-}
+        getHistoryMsgs()
+}, { deep: true, immediate: true })
+
+this.$bus.$on('recvMsg', this.recvMsg)
+this.$bus.$on('getMsg', this.getHistoryMsgs)
+recvMsg()
+  
+
 </script>
 
 

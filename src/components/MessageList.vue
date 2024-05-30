@@ -4,10 +4,10 @@
         <div id="messageList" class="flex-center" ref='menu'>
             <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hide">
             <div class="detail-wrap flex-start-center miniscrollbar">
-                <template v-if="Array.isArray(messageList)">
-                    <div class="detail flex-between-center" v-for="message of messageList" :key="message._id" @click="enterPrivateChat(getTo(message.from))">
+                <template v-if="Array.isArray(messageStore.messageList)">
+                    <div class="detail flex-between-center" v-for="message of messageStore.messageList" :key="message._id" @click="enterPrivateChat(getValue(messageStore.messageList, '_id', message.from))">
                         <div class="left line">
-                            <div class="nickname">{{ getNickname(message.from) }}</div>
+                            <div class="nickname">{{ getValue(messageStore.messageList, "_id", message.from, 'nickname') }}</div>
                             <div class="text">{{ message.content }}</div>
                         </div>
                         <div class="time">{{ parseTime(message.create_time) }}</div>
@@ -21,52 +21,31 @@
     </section>
 </template>
 
-<script>
-import imgMixin from '@/mixin/imgMixin.js'
-import { parseTime } from '@/utils'
-export default {
-    name: 'messageList',
-    props: ['config'],
-    mixins: [imgMixin],
-    computed:{
-        messageList(){  
-            return this.$store.getters['messageAbout/getMessageList']
-        },
-        friendList(){
-            return this.$store.getters['friendAbout/getFriendList']
-        }
-    },
-    methods:{
-        parseTime,
-        hide(){
-            this.config.display='none'
-                        console.log(this.messageList);
-        },
-        getNickname(id){
-            for(let i = 0; i < this.friendList.length; i++){
-                if(this.friendList[i]._id == id){
-                    return this.friendList[i].nickname
-                }
-            }
-        },
-        getTo(id){
-            for(let i = 0; i < this.friendList.length; i++){
-                if(this.friendList[i]._id == id){
-                    return this.friendList[i]
-                }
-            }
-        },
-        enterPrivateChat(to){
-            this.$bus.$emit('enterPage', {type:1, to})
-            this.$store.commit('messageAbout/Reset_Message', to._id)
-            this.$store.commit('friendAbout/Reset_Friend_hasNew', to._id)
-            this.config.display = 'none'
-        }
-    }
+<script setup>
+import { parseTime, getValue } from '@/utils'
+import { usePageStore } from '@/store/page'
+import { useMessageStore } from '@/store/message'
+import { useFriendStore } from '@/store/friend'
+
+const props = defineProps({ config: null })
+
+const pageStore = usePageStore(),
+    messageStore = useMessageStore(),
+    friendStore = useFriendStore()
+
+function hide(){
+    props.config.display='none'
+    console.log(this.messageList);
+}
+
+// 进入私聊
+function enterPrivateChat(to){
+    pageStore.enterPage({ type: 1, to })
+    props.config.display = 'none'
 }
 </script>
 
-<style lang="less" setup>
+<style lang="less" scoped>
 .message-list-wrap{
     z-index: 1;
     .mask{

@@ -1,37 +1,20 @@
 <template>
     <div id="middlebar" :class="{'fold':fold}">
-        <FriendList v-if="page.position!=='group'"/>
-        <MemberList v-if="page.position=='group'"/>
+        <FriendList v-if="pageStore.page.position!=='group'"/>
+        <MemberList v-if="pageStore.page.position=='group'"/>
         <UserBar />
     </div>
 </template>
 
-<script>
+<script setup>
 import UserBar from './UserBar.vue'
 import MemberList from '../components/MemberList.vue'
 import FriendList from '../components/FriendList.vue'
-export default {
-    name: 'MiddleBar',
-    components: {UserBar, FriendList, MemberList},
-    data(){
-        return{
-            fold: false
-        }
-    },
-    computed:{
-        page(){
-            return this.$store.getters['pageAbout/getPage']
-        }
-    },
-    created(){
-        this.$bus.$on('fold',()=>{
-            this.fold = !(this.fold)  
-        })
-    },
-    destroyed(){
-        this.$bus.$off('fold')
-    }
-}
+import { ref } from 'vue'
+import { usePageStore } from '@/store/page'
+
+const pageStore = usePageStore()
+const fold = ref(false)
 </script>
 <style lang="less" scoped>
 #middlebar{
