@@ -43,7 +43,7 @@ function applyGroup(group){
     }).then(() => {
         applyGroupAPI(userStore.user._id, group._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
             }else{
                 (this?.$message || console).error(resp.msg)
             }

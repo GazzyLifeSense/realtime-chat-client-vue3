@@ -11,7 +11,7 @@
         <div class="func-btn-wrap flex-center">
             <div class="func-btn flex-center" @click="getApplies">
                 <img src="@/assets/待处理申请.svg">
-                <div class="pot flex-center" v-if="userStore.applyCount">{{userStore.applyCount}}</div>
+                <div class="pot flex-center" v-if="userStore.appliesCount">{{userStore.appliesCount}}</div>
             </div>
 
             <div class="func-btn flex-center">
@@ -22,7 +22,7 @@
 
         <div class="backdrop flex-center" :style="{display: showApplyList ? 'flex' : 'none'}" @click.self="showApplyList = !showApplyList">
             <div class="apply-list-wrap">
-                <div class="apply-friend-list" ref="applyFriendList">
+                <div class="apply-friend-list">
                     <h2 class="title">好友申请</h2>
                     <div v-if="!Array.isArray(applyFriendList) || !applyFriendList.length">无</div>
                     <div class="applyFriend bounceInRight" v-for="user of applyFriendList" :key="user._id">
@@ -31,8 +31,8 @@
                             <div class="nickname line">昵称：{{user.nickname}}</div>
                             <div class="username line">用户名：{{user.username}}</div>
                         </div>
-                        <el-button type="primary" size="small" @click="acceptFriendApply(user)">接受</el-button>
-                        <el-button type="danger" size="small" @click="rejectFriendApply(user)">拒绝</el-button>
+                        <button class="primary-btn" @click="acceptFriendApply(user)">接受</button>
+                        <button class="danger-btn" @click="rejectFriendApply(user)">拒绝</button>
                     </div>
                 </div>
                 <br/>
@@ -45,8 +45,8 @@
                             <div class="line">{{apply.applyFrom.nickname}}</div>
                             <div class="line">{{apply.groupDetail.name}}</div>
                         </div>
-                        <el-button type="primary" size="small" @click="acceptGroupApply(apply)">接受</el-button>
-                        <el-button type="danger" size="small" @click="rejectGroupApply(apply)">拒绝</el-button>
+                        <button class="primary-btn" @click="acceptGroupApply(apply)">接受</button>
+                        <button class="danger-btn" @click="rejectGroupApply(apply)">拒绝</button>
                     </div>
                 </div>
             </div>
@@ -107,7 +107,7 @@ function getGroupApplies(){
 function acceptFriendApply(user){
     acceptFriendApplyAPI(user.apply.from, user.apply.to).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
             getFriendApplies()
             friendStore.getFriendList()
             userStore.getAppliesCount()
@@ -121,7 +121,7 @@ function acceptFriendApply(user){
 function rejectFriendApply(user){
     rejectFriendApplyAPI(user.apply.from, user.apply.to).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
             getFriendApplies()
             friendStore.getFriendList()
             userStore.getAppliesCount()
@@ -135,7 +135,7 @@ function rejectFriendApply(user){
 function acceptGroupApply(apply){
     acceptGroupApplyAPI(apply.from, apply.to).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
             getGroupApplies()
             userStore.getAppliesCount()
         }else{
@@ -148,7 +148,7 @@ function acceptGroupApply(apply){
 function rejectGroupApply(apply){
     rejectGroupApplyAPI(apply.from, apply.to).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
             getGroupApplies()
             userStore.getAppliesCount()
         }else{
@@ -252,16 +252,14 @@ function rejectGroupApply(apply){
             width: 100%;
             color: white;
             .applyFriend,.applyGroup{
+                padding: .5em;
                 width: 100%;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                .avatar{
-                    margin: 10px;
-                }
+                gap: .5em;
                 .info{
                     flex: 1;
-                    padding-right: 10px;
                 }
             }
         }

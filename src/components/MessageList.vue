@@ -3,9 +3,9 @@
         <div class="mask" @click.self="hide"></div>
         <div id="messageList" class="flex-center" ref='menu'>
             <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hide">
-            <div class="detail-wrap flex-start-center miniscrollbar">
+            <div class="detail-wrap flex-start-center miniscrollbar">{{ messageStore.messageList }}
                 <template v-if="Array.isArray(messageStore.messageList)">
-                    <div class="detail flex-between-center" v-for="message of messageStore.messageList" :key="message._id" @click="enterPrivateChat(getValue(messageStore.messageList, '_id', message.from))">
+                    <div class="detail flex-between-center" v-for="message of messageStore.messageList" :key="message._id" @click="enterPrivateChat(message.from)">
                         <div class="left line">
                             <div class="nickname">{{ getValue(messageStore.messageList, "_id", message.from, 'nickname') }}</div>
                             <div class="text">{{ message.content }}</div>
@@ -39,8 +39,9 @@ function hide(){
 }
 
 // 进入私聊
-function enterPrivateChat(to){
-    pageStore.enterPage({ type: 1, to })
+function enterPrivateChat(toId) {
+    const target = getValue(friendStore.friendList, '_id', toId)
+    pageStore.enterPage({ type: 1, to: target })
     props.config.display = 'none'
 }
 </script>

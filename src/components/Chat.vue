@@ -1,21 +1,22 @@
 <template>
     <div id="chat">
-        <div class="title">{{pageStore.to.nickname || pageStore.to.name}}</div>
+        <div class="title">{{pageStore.page.to?.nickname || pageStore.page.to?.name}}</div>
+ 
+        <div class="chat-content" ref="msgBoxRef">
 
-        <div class="chat-content" ref="msgBox">
+          <a href="#" class="loadMoreMsgs" @click.prevent="messageStore.loadMoreMsgs(scrollToLatest)">点击加载更多消息</a>
 
-          <a href="#" class="loadMoreMsgs" @click.prevent="loadMoreMsgs">点击加载更多消息</a>
+          <div v-for="item in messageStore.msgList" :key="item._id">
+            <!-- 其他人发送的消息 -->
+            <div class="othersmsgpack fadeIn" v-if="item.from !== userStore.user._id">
 
-          <div v-for="item in msgList" :key="item._id">
-            <div class="othersmsgpack fadeIn" v-if="item.from !== user._id">
-
-              <div class="avatar" @click="showInfo(item.from, page.position=='private'?1:2)">
-                <img :src="page.position=='private'?getUserAvatar(page.to.avatar):getUserAvatar(avatar(item.from))" width="40px" height="40px" />
+              <div class="avatar" @click="pageStore.userInfoConfig = {show: true, id: item.from, isFriend: pageStore.page.position=='private'?true:false}">
+                <img :src="pageStore.page.position=='private'?getUserAvatar(pageStore.page.to.avatar):getUserAvatar(avatar(item.from))" width="40px" height="40px" />
               </div>
               
               <div class="content-wrap">
                 <div class="header flex-center">
-                  <div class="username line">{{ page.to.nickname?page.to.nickname:name(item.from) }}&nbsp;&nbsp;</div>
+                  <div class="username line">{{ pageStore.page.to.nickname?pageStore.page.to.nickname:name(item.from) }}&nbsp;&nbsp;</div>
                   <div class="time">{{ new Date(item.create_time).toLocaleString() }}</div>
                 </div>
                 
@@ -28,15 +29,15 @@
             </div>
 
             <!-- 自己发送的消息 -->
-            <div class="mymsgpack fadeIn" v-if="item.from === user._id">
+            <div class="mymsgpack fadeIn" v-if="item.from === userStore.user._id">
 
               <div class="avatar">
-                <img :src="getUserAvatar(user.avatar)" width="40px" height="40px" />
+                <img :src="getUserAvatar(userStore.user.avatar)" width="40px" height="40px" />
               </div>
 
               <div class="content-wrap">
                 <div class="header flex-center">
-                  <div class="username line">{{ user.nickname }}</div>
+                  <div class="username line">{{ userStore.user.nickname }}</div>
                   <div class="time">{{ new Date(item.create_time).toLocaleString() }}&nbsp;&nbsp;</div>
                 </div>
                 
@@ -56,10 +57,10 @@
             <div class="input-wrap">
                 <div class="chat-icon flex-center">
                   <img src="../assets/消息.svg" class="icon" >
-                  <input type="file" class="upload-hide" @change="getPic($event)" ref="pic" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
+                  <input type="file" class="upload-hide" @change="getPic($event)" ref="picRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
                 </div>
 
-                  <input type="text" class="chat-input" v-model="msg" @keyup.enter="sendMsg" :placeholder="`给 # ${title} 发信息`" maxlength="50">
+                  <input type="text" class="chat-input" v-model="msg" @keyup.enter="sendMsg" :placeholder="`给 # ${pageStore.page.to?.nickname || pageStore.page.to?.name} 发信息`" maxlength="50">
 
                 <div class="limit" :class="{shake}" :style="{color: color}">{{encodeEmoji(msg).length}}/50</div>
                 
@@ -86,25 +87,27 @@ import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { useFriendStore } from '@/store/friend'
 import { useGroupStore } from '@/store/group'
-import { inject, ref, watch } from 'vue'
+import { inject, onMounted, ref, watch } from 'vue'
 import { getPrivateMsgAPI } from '@/api/friend'
 import { sendPicAPI } from '@/api/message'
 import { useMessageStore } from '@/store/message'
+import { getGroupMsgAPI } from '@/api/group'
 
 const userStore = useUserStore(),
   pageStore = usePageStore(),
   friendStore = useFriendStore(),
   groupStore = useGroupStore(),
-  messageList = useMessageStore()
+  messageStore = useMessageStore()
     
 const msg = ref(''),
   color = ref('white'),
   shake = ref(false),
-  msgList = ref([]),
   users = ref([]),
   emojiList = ref(json.data.split(',')),
   showEmojiList = ref(false),
-  socketInstance = inject('socketInstance')
+  socketInstance = inject('socketInstance'),
+  msgBoxRef = ref(),
+  picRef = ref()
 
 
 function name(_id){
@@ -139,11 +142,12 @@ function sendMsg(){
     });
     // 重置输入框
     msg.value = "";
+    scrollToLatest()
 }
 function getPic(e){
   let file = e.target.files[0]
   if(file.size/1024/1024 > 1){
-      return (this?.$message || console).warning('文件大小超过5MB限制！')
+      return console.info('文件大小超过5MB限制！')
   }
   
   // 封装请求数据体
@@ -178,88 +182,18 @@ function getPic(e){
   }
 }
 function sendPic(){
-  // 选择文件前，重置文input框内容，解决无法连续发送相同图片的问题
-  this.$refs.pic.value = ""
-  this.$refs.pic.click()
-}
-function recvMsg(){
-  if(this.$socket?.connected){
-    this.$socket.on(userStore.user._id,(resp)=>{
-      console.log('callback2', pageStore.page.to)
-      if([1,2].indexOf(resp.code) != -1){
-        let res_chat_id
-        let chat_id 
-
-        if(resp.code === 1){
-          res_chat_id = [resp.data.from, resp.data.to].sort().join('_')
-          chat_id = [userStore.user?._id, pageStore.page.to?._id].sort().join('_')
-        }
-        
-        if((resp.code === 1 && res_chat_id === chat_id) || (resp.code === 2 && resp.data.to === pageStore.page.to._id)){
-          this.msgList.push(resp.data)
-          console.log(this.msgList)
-          this.scrollToLatest()
-        }
-      }
-    })
-  }
+  // 选择文件前，重置input框内容，解决无法连续发送相同图片的问题
+  picRef.value.value = ""
+  picRef.value.click()
 }
 
 // 滚动到最新消息处
 function scrollToLatest(){
   setTimeout(()=>{
-    if(this.$refs.msgBox)
-      this.$refs.msgBox.scrollTop = this.$refs.msgBox.scrollHeight
+      msgBoxRef.value.scrollTop = msgBoxRef.value.scrollHeight
   },200)
 }
 
-  // 获取历史消息
-function getHistoryMsgs(){
-  if(pageStore.page.position == 'private'){
-    getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 15,  -1).then((resp)=>{
-      // 获取历史消息成功
-      if(resp.code === 200){
-        this.msgList = resp.data
-        scrollToLatest()
-      }else (this?.$message || console).error(resp.msg)
-    })
-  }
-  else if(pageStore.page.position == 'group'){
-    getGroupMsgAPI(pageStore.page.to._id, 15, -1).then((resp)=>{
-      // 获取历史消息成功
-      if(resp.code === 200){
-        this.msgList = resp.data
-        scrollToLatest()
-      }else (this?.$message || console).error(resp.msg)
-    })
-  }
-}
-
-function loadMoreMsgs(){
-  let time
-  if(this.msgList.length !== 0){
-    time = this.msgList[0].create_time 
-  }else{
-    time = -1
-  }
-  if(pageStore.page.position == 'private'){
-    getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 10, time).then((resp)=>{
-      // 获取更多历史消息成功
-      if(resp.code === 200){
-        if(resp.data.length === 0) return (this?.$message || console).error('已经到顶了')
-          this.msgList.unshift(...resp.data)
-      } else (this?.$message || console).error('获取消息失败，请检查网络！')
-    })
-  }else if(pageStore.page.position == 'group'){
-    getPrivateMsgAPI(pageStore.page.to._id, 10, time).then((resp)=>{
-      // 获取更多历史消息成功
-      if(resp.code === 200){
-        if(resp.data.length === 0) return (this?.$message || console).error('已经到顶了')
-          this.msgList.unshift(...resp.data)
-      } else (this?.$message || console).error('获取消息失败，请检查网络！')
-    })
-  }
-}
 // 将表情编码
 function encodeEmoji(str){
   const regex = emojiRegex()
@@ -273,13 +207,9 @@ function decodeEmoji(str){
     return String.fromCodePoint(filterP)
   })
 }
-function showInfo(id, type){
-  this.$bus.$emit('showInfo', id, type)
-}
 
-    
-watch(msg, () => {
-  if(this.encodeEmoji(newV).length >= 50){
+watch(msg, (newV) => {
+  if(encodeEmoji(newV).length >= 50){
           color.value = 'red'
           shake.value = true
       }else{
@@ -287,19 +217,18 @@ watch(msg, () => {
           shake.value = false
       }
 })
+
 watch(pageStore.page, (newV, oldV) => {
   if(oldV && oldV.position == 'group' && oldV.to && oldV.to._id != newV.to._id){
-          this.$socket.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
+          socketInstance.value.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
         }
         // 获取历史消息
-        getHistoryMsgs()
+        messageStore.getHistoryMsgs(scrollToLatest)
 }, { deep: true, immediate: true })
 
-this.$bus.$on('recvMsg', this.recvMsg)
-this.$bus.$on('getMsg', this.getHistoryMsgs)
-recvMsg()
-  
-
+onMounted(() => {
+  messageStore.recvMsg()
+})
 </script>
 
 

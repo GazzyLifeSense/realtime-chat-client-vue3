@@ -49,10 +49,12 @@ button {
   transition: border-color 0.25s;
 }
 button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.primary-btn{
+  background-color: #646cff;
 }
-
+.danger-btn{
+  background-color: #df5b5b;
+}
 .card {
   padding: 2em;
 }
@@ -206,6 +208,24 @@ ul, ol{
     pointer-events: none;
     position: absolute;
   }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: transparent; 
 }
 @media screen and (max-width: 1280px) {
   :root{ font-size: .9em; }

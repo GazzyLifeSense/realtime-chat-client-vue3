@@ -92,7 +92,7 @@ function getFile(e,mode){
     let file = e.target.files[0]
 
     if(file.size/1024/1024 > 1){
-        return (this?.$message || console).warning('文件大小超过5MB限制！')
+        return console.info('文件大小超过5MB限制！')
     }
 
     // 封装formData 
@@ -135,11 +135,11 @@ function updateGroupDescription(){
     }).then(({value})=>{
         let description = value.trim()
         if(description.length == 0 || description.length > 40){
-            return (this?.$message || console).warning('超出长度(40)!'); 
+            return console.info('超出长度(40)!'); 
         }
         updateGroupDescriptionAPI(pageStore.page.to._id, value).then((resp)=>{
             if(resp.code === 200){
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 this.$store.commit('groupAbout/Update_Description', [this.page.to._id,resp.data])
             }else{
                 (this?.$message || console).error('修改失败！')
@@ -166,7 +166,7 @@ function exitGroup(){
     }).then(() => {
         exitGroupAPI(pageStore.page.to._id, userStore.user._id).then((resp)=>{
             if(resp.code === 200){
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 groupStore.getGroupList()
                 pageStore.enterPage()
             }else{
@@ -184,7 +184,7 @@ function dismissGroup(){
     }).then(() => {
         dismissGroupAPI(pageStore.page.to._id).then((resp)=>{
             if(resp.code === 200){
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 // 群组刷新
                 groupStore.getGroupList()
                 pageStore.enterPage()

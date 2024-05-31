@@ -4,48 +4,48 @@
         <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hide">
         <div class="avatar-wrap">
             <div class="mask">
-                <img :src="getUserAvatar(user.avatar)" class="avatar" title="上传头像" @click.stop="uploadAvatar">
+                <img :src="getUserAvatar(userStore.user.avatar)" class="avatar" title="上传头像" @click.stop="uploadAvatar">
             </div>
             <input type="file" hidden @change="getFile($event)" ref="file" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
             <div class="online"></div>
         </div>
         <div class="detail-wrap flex-center">
             <div class="detail">
-                <div class="nickname flex-start"><div class="label">昵称：</div>{{user.nickname}}&nbsp;<a @click="updateNickname"><img src="@/assets/修改.svg"></a></div>
+                <div class="nickname flex-start"><div class="label">昵称：</div>{{userStore.user.nickname}}&nbsp;<a @click="updateNickname"><img src="@/assets/修改.svg"></a></div>
                 
                 <div class="separator"></div>
                 
                 <div class="username">
                 <h3>用户名</h3>
-                <div class="text">{{user.username}}</div>
+                <div class="text">{{userStore.user.username}}</div>
                 </div>
                 
                 <div class="separator"></div>
                 
                 <div class="uid">
                 <h3>UID</h3>
-                <div class="text">{{user._id}}</div>
+                <div class="text">{{userStore.user._id}}</div>
                 </div>
             
                 <div class="separator"></div>
                 
                 <div class="location">
                     <h3>归属地</h3>
-                    <div class="text">{{user.location}}</div>
+                    <div class="text">{{userStore.user.location}}</div>
                 </div>
 
                 <div class="separator"></div>
                 
                 <div class="introduction">
                     <h3 class="flex-start">个人介绍&nbsp;<a @click="updateIntroduction"><img src="@/assets/修改.svg"></a></h3>
-                    <div class="text">{{user.introduction==''?'此人很懒,没有留下任何信息':user.introduction}}</div>
+                    <div class="text">{{userStore.user.introduction==''?'此人很懒,没有留下任何信息':userStore.user.introduction}}</div>
                 </div>
                 
                 <div class="separator"></div>
                 
                 <div class="regDate">
                     <h3>注册时间</h3>
-                    <div class="text">{{new Date(parseInt(user.regDate)).toLocaleString()}}</div>
+                    <div class="text">{{new Date(parseInt(userStore.user.regDate)).toLocaleString()}}</div>
                 </div>
 
                 <div class="separator"></div>
@@ -65,12 +65,16 @@
 import { getUserAvatar } from '@/utils/pathResolver'
 import { useUserStore } from '@/store/user'
 import { updatePasswordAPI, updateIntroductionAPI, updateNicknameAPI, uploadAvatarAPI } from '@/api/user';
+import { inject } from 'vue';
+import { useRouter } from 'vue-router';
 
 const props = defineProps({
     open: null
 })
 
 const userStore = useUserStore()
+const socketInstance = inject('socketInstance'),
+    router = useRouter()
 
 function hide(){
     props.open = false
@@ -78,7 +82,7 @@ function hide(){
 function getFile(e){
     let file = e.target.files[0]
     if(file.size/1024/1024 > 1){
-        return (this?.$message || console).warning('文件大小超过5MB限制！')
+        return console.info('文件大小超过5MB限制！')
     }
     let formData = new FormData();
     formData.append('userId', this.user._id)
@@ -114,11 +118,11 @@ function updateNickname(){
     }).then(({value})=>{
         let nickname = value.trim()
         if(nickname.length == 0 || nickname.length > 8){
-            return (this?.$message || console).warning('超出长度(8)!'); 
+            return console.info('超出长度(8)!'); 
         }
         updateNicknameAPI(userStore.user._id, value).then((resp)=>{
             if(resp.code === 200){
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 userStore.user.nickname = resp.data
             }else{
                 (this?.$message || console).error('修改失败！')
@@ -140,11 +144,11 @@ function updateIntroduction(){
     }).then(({value})=>{
         let introduction = value.trim()
         if(introduction.length == 0 || introduction.length > 25){
-            return (this?.$message || console).warning('超出长度(25)!'); 
+            return console.info('超出长度(25)!'); 
         }
         updateIntroductionAPI(userStore.user._id, value).then((resp)=>{
             if(resp.code === 200){
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 this.$store.commit('userAbout/Set_Introduction', resp.data)
             }else{
                 (this?.$message || console).error('修改失败！')
@@ -179,7 +183,7 @@ function updatePassword(){
             let newPassword = value
             updatePasswordAPI(userStore.user._id, password, newPassword).then((resp)=>{
                 if(resp.code === 200){
-                    (this?.$message || console).success(resp.msg)
+                    (this?.$message || console).log(resp.msg)
                     this.$router.replace("/")
                 }else{
                     (this?.$message || console).error('修改失败！')
@@ -195,8 +199,8 @@ function updatePassword(){
 // 注销
 function logout(){
     sessionStorage.clear()
-    this.$socket.emit('logout')
-    this.$router.push('/')
+    socketInstance.value.emit('logout')
+    router.push('/')
 }
 </script>
 

@@ -1,6 +1,6 @@
 <template>
     <div id="base">
-        <MiddleBar :type="pageStore.page.position" :to='pageStore.page.to'/>
+        <MiddleBar />
         <Panel v-if="pageStore.page.position==='main'" />
         <Chat v-if="['private','group'].indexOf(pageStore.page.position) != -1" />
         <Discovery v-if="pageStore.page.position==='discovery'"/>

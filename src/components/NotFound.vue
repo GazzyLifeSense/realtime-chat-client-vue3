@@ -4,7 +4,7 @@
 		<div class="not-detail">
 			<h2>404</h2>
 			<h4>抱歉，您访问的页面不存在~🤷‍♂️🤷‍♀️</h4>
-			<el-button type="primary" @click="$router.replace('/mainwrap')">返回首页</el-button>
+			<button type="primary" @click="$router.replace('/mainwrap')">返回首页</button>
 		</div>
 	</div>
 </template>
@@ -37,7 +37,7 @@
 			font-weight: normal;
 			color: var(--el-text-color-regular);
 		}
-		.el-button {
+		.button {
 			width: 100px;
 		}
 	}

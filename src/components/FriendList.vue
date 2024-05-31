@@ -5,7 +5,7 @@
             <div class="list-item" v-for="friend of friendList" :key="friend._id" ref="friend" @contextmenu.prevent="showMenu(friend)">
                 <div class="avatar"  @click="enterPrivateChat(friend)">
                     <img :src="getUserAvatar(friend.avatar)" height='35' width='35'>
-                    <div class="newMsg" v-if="friend.hasNew">{{friend.hasNew}}</div>
+                    <div class="newMsg" v-if="friend.hasNew">new</div>
                 </div>
                 <div class="info"  @click="enterPrivateChat(friend)">
                     <div class="username line">{{friend.nickname}}</div>

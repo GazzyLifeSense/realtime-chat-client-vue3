@@ -2,13 +2,15 @@
     <div id="mainwrap" class="full">
         <SideBar />
         <Base />
-        <UserInfo :config=userInfoConfig />
+
+        <!-- 用户信息卡片 -->
+        <UserInfo />
     </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, inject } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { io } from "socket.io-client"
 import { SocketIP } from '@/config'
 import SideBar from '@/components/SideBar.vue'
@@ -25,7 +27,8 @@ const userStore = useUserStore(),
     pageStore = usePageStore(),
     friendStore = useFriendStore(),
     groupStore = useGroupStore(),
-    messageStore = useMessageStore()
+    messageStore = useMessageStore(),
+    router = useRouter()
 
 const userInfoConfig = reactive({
     display:'none', user: null
@@ -37,24 +40,6 @@ watch(()=>pageStore.page,(newVal, oldVal)=>{
         this.$socket.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldVal.to._id})
     }
 }, {deep: true, immediate: true})
-
-function showInfo(id, type){
-    let user;
-    if(type == 1){
-        for(let i = 0; i < this.friendList.length; i++){
-            if(this.friendList[i]._id == id){
-                user = this.friendList[i]
-            }
-        }
-    }else{
-        for(let i = 0; i < this.memberList.length; i++){
-            if(this.memberList[i]._id == id){
-                user = this.memberList[i]
-            }
-        }
-    }
-    this.userInfoConfig = {display: 'flex', user, type}
-}
 
 onMounted(async ()=>{
     // TODO pinia persist
@@ -73,32 +58,32 @@ onMounted(async ()=>{
             
             socketInstance.value.on("connect", () => {
                 console.log('连接服务器成功',100)
-                if(pageStore.page.to){
-                    this.$bus.$emit('recvMsg')
-                    this.$bus.$emit('getMsg')
+                if (pageStore.page.to._id) {
+                    messageStore.recvMsg()
+                    messageStore.getHistoryMsgs()
                 }
                 socketInstance.value.on(userStore.user._id, (resp) => {
                     if([1,2,3,4,5,6,7,8,10,11,12,999].indexOf(resp.code) != -1){
                         console.log('callback1:',resp, pageStore.page)
                         if(resp.code == 1 && resp.data.from != userStore.user._id && (pageStore.page.positon == 'main' || ( pageStore.page.position != 'group' && pageStore.page.to?._id != resp.data?.from) || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))){
-                            // 私聊消息提示
+                            // 其它私聊消息提示
                             friendStore.setFriendNewStatus(resp.data.from, Date.now())
                             messageStore.messageList.push(resp.data)
                         }else if(resp.code === 2 && resp.data.from != userStore.user._id && (pageStore.page.position != 'group' || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))){
-                            // 群组消息提示
+                            // 其它群组消息提示
                             groupStore.setGroupNewStatus(resp.data.to, Date.now())
                         // 新好友申请提示
                         }else if(resp.code === 3){
                             userStore.getAppliesCount()
-                            (this?.$message || console).success(resp.msg)
+                            (this?.$message || console).log(resp.msg)
                         // 好友列表更新
                         }else if(resp.code === 4){
                             friendStore.getFriendList()
-                            (this?.$message || console).success(resp.msg)
+                            (this?.$message || console).log(resp.msg)
                         // 群组列表更新
                         }else if(resp.code === 5){
                             groupStore.getGroupList()
-                            (this?.$message || console).success(resp.msg)
+                            (this?.$message || console).log(resp.msg)
                         }else if(resp.code === 6){
                             // 对方已不是好友
                             friendStore.getFriendList()
@@ -113,7 +98,7 @@ onMounted(async ()=>{
                         }else if([0,8,10,11].indexOf(resp.code) != -1){
                             (this?.$message || console).error(resp.msg)
                         }else if(resp.code === 999){
-                            this.$notify.error(resp.msg)
+                            console.error(resp.msg)
                             this.$router.replace("/")
                             sessionStorage.clearAll()
                         }
@@ -123,33 +108,30 @@ onMounted(async ()=>{
                 // 断线重连
                 socketInstance.value.on("disconnect", () => {
                     socketInstance.value = null
-                    this.$notify.error('已断开连接')
+                    console.error('已断开连接')
                 });
                 socketInstance.value.on('new',(resp)=>{
                     if(resp.code === 9){
-                        (this?.$message || console).success(resp.msg)
+                        (this?.$message || console).log(resp.msg)
                         groupStore.getMemberList()
                     }
                 })
             });
-            this.$bus.$on('showInfo', this.showInfo)
         }else{
             // 重定向至登录页
             (this?.$message || console).error(resp.msg)
-            this.$router.replace("/")
+            router.replace("/")
         }
     })
 })
 
 onBeforeUnmount(()=>{
-    this.$bus.$off('showInfo')
     sessionStorage.removeItem('store')
     socketInstance.value = null
-    this.$destroy()
 })
 onBeforeRouteLeave ((to, from, next)=>{
-    if(to.path == '/' && this.$socket) {
-        this.$socket.disconnect();
+    if(to.path == '/' && socketInstance.value) {
+        socketInstance.value.disconnect();
     }
     next()
 }) 
@@ -158,7 +140,7 @@ onBeforeRouteLeave ((to, from, next)=>{
 
 <style lang="less" scoped>
     #mainwrap{
-        min-height: 100vh;
+        height: 100vh;
         width: 100vw;
         display: flex;
         background: white;

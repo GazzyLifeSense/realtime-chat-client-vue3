@@ -1,5 +1,4 @@
-const ASSETS_PATH = new URL('/src/assets', import.meta.url).href
-
+const ASSETS_PATH = '/src/assets'
 function getUserAvatar(name: string){
     return name ? `${ASSETS_PATH}/avatar/${name}?${Date.now()}` : `${ASSETS_PATH}/girl-6.svg`
 }

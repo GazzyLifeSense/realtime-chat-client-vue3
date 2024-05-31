@@ -64,7 +64,12 @@ function toLogin(){
 
 // 注册用户
 function toRegister(){
-    userRegister(regData)
+    userRegister(regData).then((data) => {
+        if (data.code == 200) {
+            console.log("reg success")
+            formType.value = 0
+        }
+    })
 }
 
 onBeforeMount(()=>{
@@ -76,7 +81,7 @@ onBeforeMount(()=>{
 <style lang="less" scoped>
 .center-container{
     width: 100vw;
-    height: 100%;
+    height: 100vh;
     padding: 1em;
     background: url('../assets/login_bg.avif') no-repeat;
     background-size: cover;

@@ -34,7 +34,7 @@ function deleteFriend(){
     }).then(() => {
         deleteFriendAPI(userStore.user._id, props.config.to._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 friendStore.getFriendList()
             }
             else{
@@ -48,7 +48,7 @@ function deleteFriend(){
 function applyFriend(){
     applyFriendAPI(userStore.user._id, props.config.to.username).then((resp)=>{
         if(resp.code === 200) {
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
         }else{
             (this?.$message || console).error(resp.msg)
         }
@@ -64,7 +64,7 @@ function removeMember(){
     }).then(() => {
         removeMemberAPI(props.config.from._id, props.config.to._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 groupStore.getMemberList()
             }
             else{
@@ -83,7 +83,7 @@ function transferGroup(){
     }).then(() => {
         transferGroupAPI(props.config.from._id, props.config.to._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).success(resp.msg)
+                (this?.$message || console).log(resp.msg)
                 this.$store.commit('groupAbout/Update_Owner',[props.config.from._id, props.config.to._id])
                 pageStore.enterPage()
             }
@@ -94,8 +94,9 @@ function transferGroup(){
     })
 }
 
-function showInfo(id){
-    this.$bus.$emit('showInfo',id, props.config.type)
+function showInfo(id) {
+    // 显示用户信息面板
+    pageStore.userInfoConfig = { show: true, id, isFriend: config.type == 1 ? true : false }
     props.config.display = 'none'
 }
 </script>

@@ -8,21 +8,17 @@ export const usePageStore = defineStore('page',{
     state: ()=>({
         page: {
             position: 'main',
-            to: '',
-        } as { position: string, to: string }
+            to: { _id: '' },
+        },
+        userInfoConfig: {
+            show: false,
+            id: '',
+            isFriend: false
+        }
     }),
     actions:{
-        setPage(value: { position: string, to: any }){
-            this.page = value
-        },
-        resetPage() {
-            this.page = {
-                position: 'main',
-                to: '',
-            }
-        },
         // 进入聊天界面
-        enterPage({ type = 0, to = { _id: '' } } = {}) {
+        enterPage({ type = 0, to = { _id: '' } } = { type: 0, to: { _id: '' }}) {
             const PageList = { 0: 'main', 1: 'private', 2: 'group', 3: 'discovery' }
             const socketInstance = inject('socketInstance')
 
@@ -49,6 +45,7 @@ export const usePageStore = defineStore('page',{
                 }
             }
             this.page = { position: PageList[type], to }
-        }
+        },
+        // 
     }
 })

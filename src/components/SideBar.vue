@@ -13,7 +13,7 @@
             <div class="separator"></div>
             
             <div class="groupList miniscrollbar">
-                <div class="rowItem" :class="{'active':page.to&&page.to._id==group._id}" v-for="group in groupList" :key="group._id" @click="enterGroup(group)">
+                <div class="rowItem" :class="{'active':page.to&&page.to._id==group._id}" v-for="group in groupStore.groupList" :key="group._id" @click="enterGroup(group)">
                     <div class="barWrap">
                         <span class="bar"></span>
                     </div>
@@ -81,7 +81,7 @@
                     </div>
                     <div class="input-wrap">
                         <input type="text" v-model="groupName" maxlength="15" placeholder="请输入服务器名称">
-                        <button class="input-btn" @click="createGroup">创建</button>
+                        <button style="border-radius: 0 8px 8px 0;" @click="createGroup">创建</button>
                     </div>
                 </div>
                 <div class="footer flex-center">
@@ -135,15 +135,15 @@ function enterMainPage(){
 // 创建群组
 function createGroup(){
     if(this.type === '') {
-        (this?.$message || console).warning('请选择服务器类型！')
+        console.info('请选择服务器类型！')
         return
     }else if(this.groupName === ''){
-        (this?.$message || console).warning('请输入服务器名称！')
+        console.info('请输入服务器名称！')
         return
     }
     createGroupAPI(groupName.value, userStore.user._id, type.value).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
             groupStore.getGroupList()
             show.value = 'none'
         }else{
@@ -163,7 +163,7 @@ function enterGroup(to){
 function addGroup(){
     applyGroupAPI(userStore.user._id, groupId.value).then((resp)=>{
         if(resp.code === 200)
-            (this?.$message || console).success(resp.msg)
+            (this?.$message || console).log(resp.msg)
         else{
             (this?.$message || console).error(resp.msg)
         }
@@ -179,7 +179,6 @@ function showNewMsgList(){
 }
 
 function fold(){
-    this.$bus.$emit('fold')
     isFold.value = !isFold.value
 }
     
@@ -285,23 +284,22 @@ function fold(){
         }
     }
     .backdrop{
-        width: 100%;
-        height: 100%;
+        width: 100vw;
+        height: 100vh;
         position: fixed;
         left: 0;
         top: 0;
         z-index: 2;
         background: rgba(0, 0, 0, 0.85);
         .Group-layer{
-            height: 480px;
-            width: 440px;
+            max-height: 90vh;
             background: white;
-            border-radius: 5px;
+            border-radius: .5em;
             display: flex;
             justify-content: flex-end;
             align-items: center;
             flex-direction: column;
-
+            color: black;
             .header,.info,.footer{
                 flex-direction: column;
             }
@@ -317,6 +315,7 @@ function fold(){
                     display: flex;
                     justify-content: space-evenly;
                     .type{
+                        color: black;
                         background: white;
                         border: 1px solid #DEDFDE;
                         .desc{
@@ -330,9 +329,9 @@ function fold(){
                 .input-wrap{
                     display: flex;
                     width: 100%;
-                    border: 1px solid #E7EAEC;
-                    border-radius: 10px;
+                    border-radius: 8px 0 0 8px;
                     margin-top: 20px;
+                    overflow: hidden;
                     input{
                         padding: 10px;
                         flex:1;
