@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onBeforeMount } from 'vue'
+import { ref, reactive, onBeforeMount, inject } from 'vue'
 import { userLogin, userRegister } from '@/api/user'
 import { useRouter } from 'vue-router'
 

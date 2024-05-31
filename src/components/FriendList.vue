@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { onBeforeMount, reactive, watch } from 'vue'
+import { onBeforeMount, reactive, watch, computed } from 'vue'
 import ContextMenu from './ContextMenu.vue'
 import { getUserAvatar } from '@/utils/pathResolver'
 import { useUserStore } from '@/store/user'
@@ -39,7 +39,7 @@ const contextMenuConfig = reactive({
 // 按新消息时间排序
 const friendList = computed(()=>friendStore.friendList.sort((a,b)=>a.hasNew > b.hasNew))
 
-watch(() => user._id, () => {
+watch(() => userStore.user._id, () => {
     // 刷新好友列表
     friendStore.getFriendList()
 })

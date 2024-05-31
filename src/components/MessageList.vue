@@ -35,7 +35,7 @@ const pageStore = usePageStore(),
 
 function hide(){
     props.config.display='none'
-    console.log(this.messageList);
+    console.log(messageStore.messageList);
 }
 
 // 进入私聊

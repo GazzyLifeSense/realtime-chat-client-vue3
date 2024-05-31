@@ -14,7 +14,7 @@ import { SocketIP } from '@/config'
 import SideBar from '@/components/SideBar.vue'
 import Base from '@/components/Base.vue'
 import UserInfo from '@/components/UserInfo.vue'
-import { getUser } from '@/api/user'
+import { getUserAPI } from '@/api/user'
 import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { useFriendStore } from '@/store/friend'
@@ -32,7 +32,7 @@ const userInfoConfig = reactive({
 })
 
 const socketInstance = inject('socketInstance')
-watch(page,(newVal, oldVal)=>{
+watch(()=>pageStore.page,(newVal, oldVal)=>{
     if(newVal.position == 'main' && oldVal && oldVal.position == 'group'){
         this.$socket.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldVal.to._id})
     }
@@ -57,17 +57,10 @@ function showInfo(id, type){
 }
 
 onMounted(async ()=>{
-    if (sessionStorage.getItem('store')) {
-        this.$store.replaceState(Object.assign({}, this.$store.state, JSON.parse(sessionStorage.getItem('store'))))
-        sessionStorage.removeItem('store')
-    }
+    // TODO pinia persist
     
-    // 在页面刷新时将vuex里的信息保存到sessionStorage里
-    window.addEventListener('beforeunload', () => {
-        sessionStorage.setItem('store', JSON.stringify(this.$store.state))
-    })
     // 验证身份
-    getUser.then(async(resp)=>{
+    getUserAPI().then(async(resp)=>{
         if (resp.code === 200) {
             userStore.user = resp.data
 
@@ -80,18 +73,18 @@ onMounted(async ()=>{
             
             socketInstance.value.on("connect", () => {
                 console.log('连接服务器成功',100)
-                if(this.page.to){
+                if(pageStore.page.to){
                     this.$bus.$emit('recvMsg')
                     this.$bus.$emit('getMsg')
                 }
                 socketInstance.value.on(userStore.user._id, (resp) => {
                     if([1,2,3,4,5,6,7,8,10,11,12,999].indexOf(resp.code) != -1){
-                        console.log('callback1:',resp, this.page)
-                        if(resp.code == 1 && resp.data.from != userStore.user._id && (this.page.positon == 'main' || ( this.page.position != 'group' && this.page.to?._id != resp.data?.from) || ( this.page.position == 'group' && this.page.to?._id != resp.data?.to))){
+                        console.log('callback1:',resp, pageStore.page)
+                        if(resp.code == 1 && resp.data.from != userStore.user._id && (pageStore.page.positon == 'main' || ( pageStore.page.position != 'group' && pageStore.page.to?._id != resp.data?.from) || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))){
                             // 私聊消息提示
                             friendStore.setFriendNewStatus(resp.data.from, Date.now())
                             messageStore.messageList.push(resp.data)
-                        }else if(resp.code === 2 && resp.data.from != userStore.user._id && (this.page.position != 'group' || ( this.page.position == 'group' && this.page.to?._id != resp.data?.to))){
+                        }else if(resp.code === 2 && resp.data.from != userStore.user._id && (pageStore.page.position != 'group' || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))){
                             // 群组消息提示
                             groupStore.setGroupNewStatus(resp.data.to, Date.now())
                         // 新好友申请提示

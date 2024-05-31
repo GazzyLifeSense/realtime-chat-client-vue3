@@ -2,10 +2,10 @@
     <div id="userbar">
         <div class="profile flex-center" @click="userDetailOpen = !userDetailOpen">
             <a class="avatar-wrap flex-center">
-                <img :src="getUserAvatar(user.avatar)" class="avatar" alt="头">
+                <img :src="getUserAvatar(userStore.user.avatar)" class="avatar" alt="头">
                 <div class="online"></div>
             </a>
-            <div class="username line">{{user.nickname}}</div>
+            <div class="username line">{{userStore.user.nickname}}</div>
             <UserDetail :open=userDetailOpen />
         </div>
         <div class="func-btn-wrap flex-center">
@@ -24,7 +24,7 @@
             <div class="apply-list-wrap">
                 <div class="apply-friend-list" ref="applyFriendList">
                     <h2 class="title">好友申请</h2>
-                    <div v-if="applyFriendList.length === 0">无</div>
+                    <div v-if="!Array.isArray(applyFriendList) || !applyFriendList.length">无</div>
                     <div class="applyFriend bounceInRight" v-for="user of applyFriendList" :key="user._id">
                         <img class="avatar" :src="getUserAvatar(user.avatar)" height="40" width="40" />
                         <div class="info line">
@@ -38,7 +38,7 @@
                 <br/>
                 <div class="apply-group-list">
                     <h2 class="title">群组申请</h2>
-                    <div v-if="applyGroupList.length === 0">无</div>
+                    <div v-if="!Array.isArray(applyGroupList) || !applyGroupList.length">无</div>
                     <div class="applyGroup bounceInRight" v-for="apply of applyGroupList" :key="apply._id">
                         <img class="avatar" :src="getUserAvatar(apply.applyFrom.avatar)" height="40" width="40" />
                         <div class="info line">
@@ -54,6 +54,7 @@
     </div>
 </template>
 <script setup>
+import { ref, watch } from 'vue'
 import UserDetail from '@/components/UserDetail.vue'
 import { getUserAvatar } from '@/utils/pathResolver';
 import { useUserStore } from '@/store/user';

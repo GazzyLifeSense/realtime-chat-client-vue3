@@ -89,11 +89,13 @@ import { useGroupStore } from '@/store/group'
 import { inject, ref, watch } from 'vue'
 import { getPrivateMsgAPI } from '@/api/friend'
 import { sendPicAPI } from '@/api/message'
+import { useMessageStore } from '@/store/message'
 
 const userStore = useUserStore(),
   pageStore = usePageStore(),
   friendStore = useFriendStore(),
-  groupStore = useGroupStore()
+  groupStore = useGroupStore(),
+  messageList = useMessageStore()
     
 const msg = ref(''),
   color = ref('white'),

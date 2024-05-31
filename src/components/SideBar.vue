@@ -1,7 +1,7 @@
 <template>
     <div id="sidebar">
         <ul class="tree">
-            <div class="rowItem" :class="{'active':page.to==null}" @click="enterMainPage">
+            <div class="rowItem" :class="{'active':pageStore.page.to==null}" @click="enterMainPage">
                 <div class="barWrap">
                     <span class="bar"></span>
                 </div>
@@ -44,7 +44,7 @@
             <div class="rowItem" @click="showNewMsgList">
                 <div class="itemWrap" >
                     <img src="../assets/消息1.svg" title="未读消息" class="icon flex-center">
-                    <div class="pot" v-if="messageList.length > 0"></div>
+                    <div class="pot" v-if="messageStore.messageList.length"></div>
                 </div>
             </div>
 

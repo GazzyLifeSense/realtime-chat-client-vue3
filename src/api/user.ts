@@ -37,7 +37,7 @@ function userRegister(user: {nickname: string, username: string, password: strin
 }
 
 // 获取用户信息
-function getUser(){
+function getUserAPI(){
     return request.post(GetUserUrl)
 }
 
@@ -99,7 +99,7 @@ function uploadAvatarAPI(formData: FormData){
 export { 
     userLogin, 
     userRegister, 
-    getUser, 
+    getUserAPI, 
     getAppliesCountAPI, 
     getFriendAppliesAPI, 
     getGroupAppliesAPI,
