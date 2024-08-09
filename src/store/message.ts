@@ -4,10 +4,11 @@ import { defineStore } from 'pinia'
 import { useUserStore } from './user'
 import { usePageStore } from './page'
 import { ResponseType } from '@/types/request'
-import { inject } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useSocketStore } from './socket'
 
 export const useMessageStore = defineStore('message',{
-    state:()=>({
+    state:(): { messageList: any, msgList: any }=>({
         messageList: [],
         msgList: []
     }),
@@ -34,26 +35,29 @@ export const useMessageStore = defineStore('message',{
                 getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 10, time).then((resp: ResponseType)=>{
                 // 获取更多历史消息成功
                 if(resp.code === 200){
-                    if(resp.data.length === 0) return (this?.$message || console).error('已经到顶了')
+                    if(resp.data.length === 0) return ElMessage.error('已经到顶了')
                         this.msgList.unshift(...(resp.data as []))
                         callback?.()
-                    } else (this?.$message || console).error('获取消息失败，请检查网络！')
+                    } else ElMessage.error('获取消息失败，请检查网络！')
                 })
             }else if(pageStore.page.position == 'group'){
                 getGroupMsgAPI(pageStore.page.to._id, 10, time).then((resp: ResponseType)=>{
                 // 获取更多历史消息成功
                 if(resp.code === 200){
-                    if(resp.data.length === 0) return (this?.$message || console).error('已经到顶了')
+                    if(resp.data.length === 0) return ElMessage.error('已经到顶了')
                         this.msgList.unshift(...(resp.data as []))
                         callback?.()
-                    } else (this?.$message || console).error('获取消息失败，请检查网络！')
+                    } else ElMessage.error('获取消息失败，请检查网络！')
                 })
             }
         },
         recvMsg(){
-            const socketInstance = inject('socketInstance'), userStore = useUserStore(), pageStore = usePageStore()
-            if(socketInstance.value?.connected){
-                socketInstance.value?.on(userStore.user._id,(resp)=>{
+            const userStore = useUserStore(), 
+                pageStore = usePageStore(),
+                socketStore = useSocketStore()
+
+            if(socketStore.instance.connected){
+                socketStore.instance.on(userStore.user._id,(resp)=>{
                 console.log('callback2', pageStore.page.to)
                 if([1,2].indexOf(resp.code) != -1){
                     let res_chat_id
@@ -73,7 +77,7 @@ export const useMessageStore = defineStore('message',{
             }
         },
         // 获取历史消息
-        getHistoryMsgs(callback: Function){
+        getHistoryMsgs(callback?: Function){
             const pageStore = usePageStore(), userStore = useUserStore()
             if(pageStore.page.position == 'private'){
                 getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 15,  -1).then((resp: ResponseType)=>{
@@ -81,7 +85,7 @@ export const useMessageStore = defineStore('message',{
                 if(resp.code === 200){
                     this.msgList = resp.data
                     callback?.()
-                }else (this?.$message || console).error(resp.msg)
+                }else ElMessage.error(resp.msg)
                 })
             }
             else if(pageStore.page.position == 'group'){
@@ -90,7 +94,7 @@ export const useMessageStore = defineStore('message',{
                     if(resp.code === 200){
                         this.msgList = resp.data
                         callback?.()
-                    }else (this?.$message || console).error(resp.msg)
+                    }else ElMessage.error(resp.msg)
                 })
             }
         }

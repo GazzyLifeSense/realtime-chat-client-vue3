@@ -41,7 +41,7 @@ function hide(){
 // 进入私聊
 function enterPrivateChat(toId) {
     const target = getValue(friendStore.friendList, '_id', toId)
-    pageStore.enterPage({ type: 1, to: target })
+    pageStore.enterPage({ type: 'main', to: target })
     props.config.display = 'none'
 }
 </script>

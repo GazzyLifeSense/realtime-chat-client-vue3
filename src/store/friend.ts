@@ -2,10 +2,12 @@ import { defineStore } from 'pinia'
 import { useUserStore } from './user'
 import { getFriendListAPI } from '@/api/friend'
 import { ResponseType } from '@/types/request'
+import { ElMessage } from 'element-plus'
 
 export const useFriendStore = defineStore('friend', {
     state: () => ({
         friendList: [] as {_id: string, hasNew: number}[],
+        friendApplyList: []
     }),
     actions:{
         // 刷新好友列表
@@ -14,9 +16,7 @@ export const useFriendStore = defineStore('friend', {
             getFriendListAPI(userStore.user._id).then((resp: ResponseType)=>{
                 if(resp.code === 200){
                     this.friendList = resp.data
-                }else{
-                    (this?.$message || console).error(resp.msg)
-                }
+                }else{ ElMessage.error(resp.msg) }
             })
         },
         setFriendNewStatus(targetId: string, value: number = 0){

@@ -95,7 +95,7 @@
             </div>
         </div>    
 
-        <message-list :config="messageListConfig"></message-list>
+        <MessageList :config="messageListConfig"></MessageList>
     </div>
 </template>
 
@@ -108,7 +108,8 @@ import { usePageStore } from '@/store/page'
 import { useMessageStore } from '@/store/message'
 import { useFriendStore } from '@/store/friend'
 import { useGroupStore } from '@/store/group'
-import { applyGroupAPI, createGroupAPI } from '@/api/group';
+import { applyGroupAPI, createGroupAPI } from '@/api/group'
+import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore(),
     pageStore = usePageStore(),
@@ -143,11 +144,11 @@ function createGroup(){
     }
     createGroupAPI(groupName.value, userStore.user._id, type.value).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
             groupStore.getGroupList()
             show.value = 'none'
         }else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.error(resp.msg)
         }
     })
 }
@@ -157,21 +158,21 @@ function switchType(targetType){
 }
 // 进入群组聊天
 function enterGroup(to){
-    pageStore.enterPage({type:2,to})
+    pageStore.enterPage({type:'group',to})
 }
 // 申请加入群组
 function addGroup(){
     applyGroupAPI(userStore.user._id, groupId.value).then((resp)=>{
         if(resp.code === 200)
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
         else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.error(resp.msg)
         }
     })
 }
 // 进入探索页面
 function enterDiscovery(){
-    pageStore.enterPage({type:3})
+    pageStore.enterPage({type:'discovery'})
 }
 
 function showNewMsgList(){

@@ -20,19 +20,17 @@ const UserLoginUrl = '/api/login',
 // TODO 密码加密传输
 // 登录
 function userLogin(user: {username: string, password: string}){
-    return new Promise(resolve=>{
-        request.post(UserLoginUrl, user).then((resp: ResponseType)=>{
-            if(resp.code === 200) {
-                // 存储token
-                sessionStorage.setItem("securityToken", JSON.stringify(resp.data).replaceAll("\"", ""))
-            }
-            resolve(resp)
-        })
+    return request.post(UserLoginUrl, user).then((resp: ResponseType)=>{
+        if(resp.code === 200) {
+            // 存储token
+            sessionStorage.setItem("securityToken", JSON.stringify(resp.data).replaceAll("\"", ""))
+        }
+        return resp;
     })
 }
 
 // 注册
-function userRegister(user: {nickname: string, username: string, password: string}){
+function userRegister(user: {nickname: string, username: string, password: string}): Promise<ResponseType>{
     return request.post(UserRegisterUrl, user)
 }
 

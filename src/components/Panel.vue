@@ -41,6 +41,7 @@ import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { applyFriendAPI } from '@/api/friend'
 import { applyGroupAPI, getGroupsByNameAPI } from '@/api/group'
+import { ElMessage } from 'element-plus';
 
 const userStore = useUserStore(),
     pageStore = usePageStore()
@@ -51,13 +52,13 @@ const to = ref(''),
 
 // 申请添加好友
 function applyFriend(){
-    if(!userStore.user.username || to.value.trim().length === 0) return (this?.$message || console).error('信息不能为空')
+    if(!userStore.user.username || to.value.trim().length === 0) return ElMessage.error('信息不能为空')
     if(to.value === userStore.user.username) return console.info('请不要添加你自己！')
     applyFriendAPI(userStore.user._id, to.value).then((resp)=>{
         if(resp.code === 200) {
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
         }else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.success(resp.msg)
         }
     })
 }
@@ -66,28 +67,28 @@ function applyFriend(){
 function applyGroup(to){
     applyGroupAPI(userStore.user._id, to.value).then((resp)=>{
         if(resp.code === 200) {
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
         }else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.error(resp.msg)
         }
     })
 }
 
 // 搜索群组
 function getGroupsByName(){
-    if(groupName.value.trim().length === 0) return (this?.$message || console).error('信息不能为空')
+    if(groupName.value.trim().length === 0) return ElMessage.error('信息不能为空')
     getGroupsByNameAPI(groupName.value).then((resp)=>{
         if(resp.code === 200) {
             groupList.value = resp.data
         }else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.error(resp.msg)
         }
     })
 }
 
 // 进入探索页面
 function enterDiscovery(){
-    pageStore.enterPage({type:3})
+    pageStore.enterPage({type:'discovery'})
 }
 </script>
 <style lang="less" scoped>

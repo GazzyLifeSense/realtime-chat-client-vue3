@@ -46,7 +46,7 @@ watch(() => userStore.user._id, () => {
 
 // 进入私聊
 function enterPrivateChat(to){
-    pageStore.enterPage({type:1, to})
+    pageStore.enterPage({type:'main', to})
     friendStore.setFriendNewStatus(to._id)
 }
 

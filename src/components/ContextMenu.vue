@@ -15,6 +15,7 @@ import { useFriendStore } from '@/store/friend'
 import { useGroupStore } from '@/store/group'
 import { applyFriendAPI, deleteFriendAPI } from '@/api/friend';
 import { removeMemberAPI, transferGroupAPI } from '@/api/group';
+import { ElMessage } from 'element-plus';
 
 const props = defineProps({
     config: {}
@@ -34,11 +35,11 @@ function deleteFriend(){
     }).then(() => {
         deleteFriendAPI(userStore.user._id, props.config.to._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).log(resp.msg)
+                ElMessage.success(resp.msg)
                 friendStore.getFriendList()
             }
             else{
-                (this?.$message || console).error(resp.msg)
+                ElMessage.error(resp.msg)
             }
         })
     })
@@ -48,9 +49,9 @@ function deleteFriend(){
 function applyFriend(){
     applyFriendAPI(userStore.user._id, props.config.to.username).then((resp)=>{
         if(resp.code === 200) {
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
         }else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.error(resp.msg)
         }
     })
 }
@@ -64,11 +65,11 @@ function removeMember(){
     }).then(() => {
         removeMemberAPI(props.config.from._id, props.config.to._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).log(resp.msg)
+                ElMessage.success(resp.msg)
                 groupStore.getMemberList()
             }
             else{
-                (this?.$message || console).error(resp.msg)
+                ElMessage.error(resp.msg)
             }
         })
     })
@@ -83,12 +84,12 @@ function transferGroup(){
     }).then(() => {
         transferGroupAPI(props.config.from._id, props.config.to._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).log(resp.msg)
+                ElMessage.success(resp.msg)
                 this.$store.commit('groupAbout/Update_Owner',[props.config.from._id, props.config.to._id])
                 pageStore.enterPage()
             }
             else{
-                (this?.$message || console).error(resp.msg)
+                ElMessage.error(resp.msg)
             }
         })
     })

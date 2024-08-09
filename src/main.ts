@@ -5,6 +5,7 @@ import App from '@/App.vue'
 import './design/ele.less'
 import '../style.less'
 import 'animate.css'
+import 'element-plus/dist/index.css'
 
 // progress bar
 import 'nprogress'
@@ -21,5 +22,4 @@ const MainApp = createApp(App)
 MainApp.use(router)
 MainApp.use(pinia)
 MainApp.provide('piniaInstance', pinia)
-MainApp.provide('socketInstance', ref({}))
 MainApp.mount('#app')

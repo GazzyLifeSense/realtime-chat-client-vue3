@@ -2,12 +2,14 @@ import { defineStore } from 'pinia'
 import { useUserStore } from './user'
 import { getGroupListAPI, getMemberListAPI } from '@/api/group'
 import { ResponseType } from '@/types/request'
+import { ElMessage } from 'element-plus'
 
 export const useGroupStore = defineStore('group',{
     state: ()=>({
         currentGroupId: '',
         groupList: [] as {_id: string, banner: string, hasNew: number}[],
         memberList: [] as any[],
+        groupApplyList: [],
     }),
     actions:{
         // 获取群组列表
@@ -16,9 +18,7 @@ export const useGroupStore = defineStore('group',{
             getGroupListAPI(userStore.user._id).then((resp: ResponseType)=>{
                 if(resp.code === 200){
                     this.groupList = resp.data
-                }else{
-                    (this?.$message || console).error(resp.msg)
-                }
+                }else{ ElMessage.error(resp.msg) }
             })
         },
         // 获取成员列表
@@ -26,11 +26,18 @@ export const useGroupStore = defineStore('group',{
             getMemberListAPI(this.currentGroupId).then((resp: ResponseType)=>{
                 if(resp.code === 200) {
                     this.memberList = resp.data
-                }else{
-                    (this?.$message || console).error(resp.msg)
-                }
+                }else{ ElMessage.error(resp.msg) }
             })
         },
+        getMemberById(memberId: string, defaultValue?: any){
+            for(let i = 0; i < this.memberList.length; i++){
+                if(this.memberList[i]._id === memberId){
+                    return this.memberList[i]
+                }
+            }
+            return defaultValue
+        },
+        
         updateGroupAvatar(value){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){

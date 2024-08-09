@@ -1,14 +1,16 @@
 import { defineStore } from 'pinia'
-import { inject } from 'vue'
 import { useGroupStore } from './group'
 import { useMessageStore } from './message'
 import { useFriendStore } from './friend'
+import { useSocketStore } from './socket'
+
+type PagePositionType = 'main' | 'private' | 'group' | 'discovery'
 
 export const usePageStore = defineStore('page',{
     state: ()=>({
         page: {
-            position: 'main',
-            to: { _id: '' },
+            position: 'main' as PagePositionType,
+            to: { _id: '' } as any,
         },
         userInfoConfig: {
             show: false,
@@ -18,12 +20,11 @@ export const usePageStore = defineStore('page',{
     }),
     actions:{
         // 进入聊天界面
-        enterPage({ type = 0, to = { _id: '' } } = { type: 0, to: { _id: '' }}) {
-            const PageList = { 0: 'main', 1: 'private', 2: 'group', 3: 'discovery' }
-            const socketInstance = inject('socketInstance')
+        enterPage({ position = 'main' as PagePositionType, to = { _id: '' } }) {
+            const socketStore = useSocketStore()
 
-            switch(type){
-                case 1: {
+            switch(position){
+                case 'private': {
                     const messageStore = useMessageStore(),
                         friendStore = useFriendStore()
                     // 清空消息列记录
@@ -32,7 +33,7 @@ export const usePageStore = defineStore('page',{
                     friendStore.setFriendNewStatus(to._id)
                     break
                 }
-                case 2: {
+                case 'group': {
                     const messageStore = useMessageStore(),
                         groupStore = useGroupStore()
                     groupStore.currentGroupId = to._id
@@ -40,11 +41,11 @@ export const usePageStore = defineStore('page',{
                     messageStore.messageList = []
                     // 取消新消息标志
                     groupStore.setGroupNewStatus(to._id)
-                    socketInstance.value.emit('enterGroupChat', { token: sessionStorage.getItem('securityToken'), groupId: to._id })
+                    socketStore.instance.emit('enterGroupChat', { token: sessionStorage.getItem('securityToken'), groupId: to._id })
                     break
                 }
             }
-            this.page = { position: PageList[type], to }
+            this.page = { position, to }
         },
         // 
     }

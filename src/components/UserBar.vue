@@ -1,12 +1,12 @@
 <template>
     <div id="userbar">
-        <div class="profile flex-center" @click="userDetailOpen = !userDetailOpen">
+        <div class="profile flex-center" @click="showUserDetail = !showUserDetail">
             <a class="avatar-wrap flex-center">
                 <img :src="getUserAvatar(userStore.user.avatar)" class="avatar" alt="头">
                 <div class="online"></div>
             </a>
             <div class="username line">{{userStore.user.nickname}}</div>
-            <UserDetail :open=userDetailOpen />
+            <UserDetail v-model:show="showUserDetail" />
         </div>
         <div class="func-btn-wrap flex-center">
             <div class="func-btn flex-center" @click="getApplies">
@@ -24,8 +24,8 @@
             <div class="apply-list-wrap">
                 <div class="apply-friend-list">
                     <h2 class="title">好友申请</h2>
-                    <div v-if="!Array.isArray(applyFriendList) || !applyFriendList.length">无</div>
-                    <div class="applyFriend bounceInRight" v-for="user of applyFriendList" :key="user._id">
+                    <div v-if="!Array.isArray(friendStore.friendApplyList) || !friendStore.friendApplyList.length">无</div>
+                    <div class="applyFriend bounceInRight" v-for="user of friendStore.friendApplyList" :key="user._id">
                         <img class="avatar" :src="getUserAvatar(user.avatar)" height="40" width="40" />
                         <div class="info line">
                             <div class="nickname line">昵称：{{user.nickname}}</div>
@@ -38,8 +38,8 @@
                 <br/>
                 <div class="apply-group-list">
                     <h2 class="title">群组申请</h2>
-                    <div v-if="!Array.isArray(applyGroupList) || !applyGroupList.length">无</div>
-                    <div class="applyGroup bounceInRight" v-for="apply of applyGroupList" :key="apply._id">
+                    <div v-if="!Array.isArray(groupStore.groupApplyList) || !groupStore.groupApplyList.length">无</div>
+                    <div class="applyGroup bounceInRight" v-for="apply of groupStore.groupApplyList" :key="apply._id">
                         <img class="avatar" :src="getUserAvatar(apply.applyFrom.avatar)" height="40" width="40" />
                         <div class="info line">
                             <div class="line">{{apply.applyFrom.nickname}}</div>
@@ -53,9 +53,9 @@
         </div>
     </div>
 </template>
-<script setup>
-import { ref, watch } from 'vue'
-import UserDetail from '@/components/UserDetail.vue'
+<script lang="ts" setup>
+import { ref } from 'vue'
+import UserDetail from '@/components/User/UserDetail.vue'
 import { getUserAvatar } from '@/utils/pathResolver';
 import { useUserStore } from '@/store/user';
 import { useFriendStore } from '@/store/friend'
@@ -63,18 +63,16 @@ import {
     getFriendAppliesAPI, getGroupAppliesAPI,
     acceptFriendApplyAPI, rejectFriendApplyAPI, acceptGroupApplyAPI, rejectGroupApplyAPI
 } from '@/api/user'
+import { ResponseType } from '@/types/request';
+import { ElMessage } from 'element-plus';
+import { useGroupStore } from '@/store/group';
 
 const userStore = useUserStore(),
-    friendStore = useFriendStore()
+    friendStore = useFriendStore(),
+    groupStore = useGroupStore()
 
 const showApplyList = ref(false),
-    applyFriendList = ref([]),
-    applyGroupList = ref([]),
-    userDetailOpen = ref(false)
-
-watch(() => userStore.user, () => {
-    userStore.getAppliesCount()
-})
+    showUserDetail = ref(false)
 
 // 获取申请信息列表
 function getApplies(){
@@ -83,77 +81,67 @@ function getApplies(){
     getGroupApplies()
 }
 
+// 获取好友申请消息
 function getFriendApplies(){
-    getFriendAppliesAPI(userStore.user._id).then((resp)=>{
+    getFriendAppliesAPI(userStore.user._id).then((resp: ResponseType)=>{
         if(resp.code === 200){
-            applyFriendList.value = resp.data
-        }else{
-            (this?.$message || console).error('好友申请获取失败！')
-        }
+            friendStore.friendApplyList = resp.data
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
+// 获取群组申请消息
 function getGroupApplies(){
-    getGroupAppliesAPI(userStore.user._id).then((resp)=>{
+    getGroupAppliesAPI(userStore.user._id).then((resp: ResponseType)=>{
         if(resp.code === 200){
-            applyGroupList.value = resp.data
-        }else{
-            (this?.$message || console).error('群组申请获取失败！')
-        }
+            groupStore.groupApplyList = resp.data
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 接受好友申请
-function acceptFriendApply(user){
-    acceptFriendApplyAPI(user.apply.from, user.apply.to).then((resp)=>{
+function acceptFriendApply(user: { apply: {from: string, to: string}}){
+    acceptFriendApplyAPI(user.apply.from, user.apply.to).then((resp: ResponseType)=>{
         if(resp.code === 200){
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
             getFriendApplies()
             friendStore.getFriendList()
             userStore.getAppliesCount()
-        }else{
-            (this?.$message || console).error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 拒绝好友申请
-function rejectFriendApply(user){
-    rejectFriendApplyAPI(user.apply.from, user.apply.to).then((resp)=>{
+function rejectFriendApply(user: { apply: {from: string, to: string}}){
+    rejectFriendApplyAPI(user.apply.from, user.apply.to).then((resp: ResponseType)=>{
         if(resp.code === 200){
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
             getFriendApplies()
             friendStore.getFriendList()
             userStore.getAppliesCount()
-        }else{
-            (this?.$message || console).error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 接受群组申请
-function acceptGroupApply(apply){
-    acceptGroupApplyAPI(apply.from, apply.to).then((resp)=>{
+function acceptGroupApply(apply: { from: string, to: string}){
+    acceptGroupApplyAPI(apply.from, apply.to).then((resp: ResponseType)=>{
         if(resp.code === 200){
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
             getGroupApplies()
             userStore.getAppliesCount()
-        }else{
-            (this?.$message || console).error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 拒绝群组申请
-function rejectGroupApply(apply){
-    rejectGroupApplyAPI(apply.from, apply.to).then((resp)=>{
+function rejectGroupApply(apply: { from: string, to: string}){
+    rejectGroupApplyAPI(apply.from, apply.to).then((resp: ResponseType)=>{
         if(resp.code === 200){
-            (this?.$message || console).log(resp.msg)
+            ElMessage.success(resp.msg)
             getGroupApplies()
             userStore.getAppliesCount()
-        }else{
-            (this?.$message || console).error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 </script>

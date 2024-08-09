@@ -11,12 +11,12 @@
             <div class="othersmsgpack fadeIn" v-if="item.from !== userStore.user._id">
 
               <div class="avatar" @click="pageStore.userInfoConfig = {show: true, id: item.from, isFriend: pageStore.page.position=='private'?true:false}">
-                <img :src="pageStore.page.position=='private'?getUserAvatar(pageStore.page.to.avatar):getUserAvatar(avatar(item.from))" width="40px" height="40px" />
+                <img :src="pageStore.page.position=='private'?getUserAvatar(pageStore.page.to.avatar):getUserAvatar(otherAvatar(item.from))" width="40px" height="40px" />
               </div>
               
               <div class="content-wrap">
                 <div class="header flex-center">
-                  <div class="username line">{{ pageStore.page.to.nickname?pageStore.page.to.nickname:name(item.from) }}&nbsp;&nbsp;</div>
+                  <div class="username line">{{ pageStore.page.to.nickname?pageStore.page.to.nickname:otherNickname(item.from) }}&nbsp;&nbsp;</div>
                   <div class="time">{{ new Date(item.create_time).toLocaleString() }}</div>
                 </div>
                 
@@ -77,7 +77,7 @@
     
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import SparkMD5 from 'spark-md5'
 import { getUserAvatar, getChatPic } from '@/utils/pathResolver'
 import { isLink } from '@/utils'
@@ -85,55 +85,41 @@ import emojiRegex from 'emoji-regex'
 import json from '@/assets/emoji/emoji.json'
 import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
-import { useFriendStore } from '@/store/friend'
 import { useGroupStore } from '@/store/group'
-import { inject, onMounted, ref, watch } from 'vue'
-import { getPrivateMsgAPI } from '@/api/friend'
+import { useSocketStore } from '@/store/socket'
+import { computed, onMounted, ref, watch } from 'vue'
 import { sendPicAPI } from '@/api/message'
 import { useMessageStore } from '@/store/message'
-import { getGroupMsgAPI } from '@/api/group'
+import { ElMessage } from 'element-plus'
+import { ResponseType } from '@/types/request'
 
 const userStore = useUserStore(),
   pageStore = usePageStore(),
-  friendStore = useFriendStore(),
   groupStore = useGroupStore(),
-  messageStore = useMessageStore()
+  messageStore = useMessageStore(),
+  socketStore = useSocketStore()
     
 const msg = ref(''),
   color = ref('white'),
   shake = ref(false),
-  users = ref([]),
   emojiList = ref(json.data.split(',')),
   showEmojiList = ref(false),
-  socketInstance = inject('socketInstance'),
   msgBoxRef = ref(),
   picRef = ref()
 
+// 对方的昵称
+const otherNickname = computed((id: any) => groupStore.getMemberById(id, { nickname: 'unknown' }).nickname)
+// 对方的头像
+const otherAvatar = computed((id: any) => groupStore.getMemberById(id)?.avatar)
 
-function name(_id){
-  for(let i = 0; i < groupStore.memberList.length; i++){
-    if(groupStore.memberList[i]._id === _id){
-      return groupStore.memberList[i].nickname
-    }
-  }
-  return "用户已离开本群组"
-}
-function avatar(_id){
-  for(let i = 0; i < groupStore.memberList.length; i++){
-    if(groupStore.memberList[i]._id === _id){
-      return groupStore.memberList[i].avatar
-    }
-  }
-  return "用户不存在"
-}
 function sendMsg(){
-    if(msg.value.trim().length === 0) return (this?.$message || console).error('输入内容不能为空！');
+    if(msg.value.trim().length === 0) return ElMessage.error('输入内容不能为空！');
 
     msg.value = encodeEmoji(msg.value)
-    if(msg.value.length > 50) return (this?.$message || console).error('输入内容不得超过50字！')
+    if(msg.value.length > 50) return ElMessage.error('输入内容不得超过50字！')
     
     // 封装消息体，并推送事件到服务器
-    socketInstance.value.emit("sendMsg", {
+    socketStore.instance.emit("sendMsg", {
         token: sessionStorage.getItem('securityToken'),
         from: userStore.user._id,
         to: pageStore.page.to._id,
@@ -144,10 +130,11 @@ function sendMsg(){
     msg.value = "";
     scrollToLatest()
 }
-function getPic(e){
+
+function getPic(e: any){
   let file = e.target.files[0]
   if(file.size/1024/1024 > 1){
-      return console.info('文件大小超过5MB限制！')
+      return ElMessage.warning('文件大小超过1MB限制！')
   }
   
   // 封装请求数据体
@@ -156,29 +143,22 @@ function getPic(e){
   formData.append('to', pageStore.page.to._id)
   formData.append('filename', file.name)
   formData.append('fileType', file.type)
-  formData.append('type', pageStore.page.position==='private'?1:2)
+  formData.append('type', pageStore.page.position==='private'?'1':'2')
 
   // 读取图片数据
   let reader = new FileReader()
   reader.readAsDataURL(file)
-  let that = this
-  reader.onload = async function(e){
-    if(e.target){
-      formData.append('file', e.target.result)
-      // 生成图片md5，避免相同图片重复上传
-      let hash = await SparkMD5.hash(e.target.result)
-      formData.append('hash', hash)
-      // 发送ajax请求
-      sendPicAPI(formData).then((resp)=>{
-          if(resp.code === 200){
-              that.$message.success(resp.msg)
-          }else{
-              that.$message.error(resp.msg)
-          }
-      })
-    }else{
-      (this?.$message || console).error('上传失败')
-    }
+  reader.onload = async function(){
+    formData.append('file', this.result as string)
+    // 生成图片md5，避免相同图片重复上传
+    let hash = await SparkMD5.hash(this.result as string)
+    formData.append('hash', hash)
+    // 发送ajax请求
+    sendPicAPI(formData).then((resp: ResponseType)=>{
+        if(resp.code === 200){
+            ElMessage.success(resp.msg)
+        }else{ ElMessage.error(resp.msg) }
+    })
   }
 }
 function sendPic(){
@@ -195,32 +175,34 @@ function scrollToLatest(){
 }
 
 // 将表情编码
-function encodeEmoji(str){
+function encodeEmoji(str: string){
   const regex = emojiRegex()
   return str.replace(regex, p => `emoji(${p.codePointAt(0)})`)
 }
+
 // 通过正则表达式解析文本中的表情
-function decodeEmoji(str){
+function decodeEmoji(str: string){
   const emojiDecodeRegex = /emoji\(\d+\)/g
   return str.replace(emojiDecodeRegex, p => {
-    const filterP = p.replace(/[^\d]/g, '')
+    const filterP = parseInt(p.replace(/[^\d]/g, ''))
     return String.fromCodePoint(filterP)
   })
 }
 
+// 消息长度限制
 watch(msg, (newV) => {
   if(encodeEmoji(newV).length >= 50){
-          color.value = 'red'
-          shake.value = true
-      }else{
-          color.value = 'white'
-          shake.value = false
-      }
+    color.value = 'red'
+    shake.value = true
+  }else{
+    color.value = 'white'
+    shake.value = false
+  }
 })
 
 watch(pageStore.page, (newV, oldV) => {
   if(oldV && oldV.position == 'group' && oldV.to && oldV.to._id != newV.to._id){
-          socketInstance.value.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
+          socketStore.instance.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
         }
         // 获取历史消息
         messageStore.getHistoryMsgs(scrollToLatest)

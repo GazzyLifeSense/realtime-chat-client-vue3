@@ -31,21 +31,22 @@ import { getGroupBanner } from '@/utils/pathResolver'
 import { useUserStore } from '@/store/user'
 import { applyGroupAPI, getRecommendGroupListAPI } from '@/api/group';
 import { onBeforeMount } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const userStore = useUserStore()
 const groupList = ref([])
     
 function applyGroup(group){
-    this.$confirm(`是否申请添加群组：${group.name}`, '提示', {
+    ElMessageBox.confirm(`是否申请添加群组：${group.name}`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
     }).then(() => {
         applyGroupAPI(userStore.user._id, group._id).then((resp)=>{
             if(resp.code === 200) {
-                (this?.$message || console).log(resp.msg)
+                ElMessage.success(resp.msg)
             }else{
-                (this?.$message || console).error(resp.msg)
+                ElMessage.error(resp.msg)
             }
         })
     })
@@ -56,7 +57,7 @@ onBeforeMount(()=>{
         if(resp.code === 200) {
             this.groupList = resp.data
         }else{
-            (this?.$message || console).error(resp.msg)
+            ElMessage.error(resp.msg)
         }
     })
 })

@@ -1,197 +1,181 @@
 <template>
     <div id="member-list-wrap" @mouseleave="isScroller=true?false:false">
         <div class="group-header flex-between-center line" @click.stop="isScroller=!isScroller">
-            {{page.to.name}}         
+            {{pageStore.page.to.name}}         
             <img src="@/assets/arrowDown.svg" v-if="!isScroller">
             <img src="@/assets/叉.svg" :class="{isScroller:isScroller}" v-if="isScroller">
         </div>
         <div class="group-banner">
-            <img :src="getGroupBanner(page.to.banner)" alt="服务器图片" height="135">
+            <img :src="getGroupBanner(pageStore.page.to.banner)" alt="服务器图片" height="135">
         </div>
-        <div class="title">成员 - {{ memberList.length }}</div>
+        <div class="title">成员 - {{ groupStore.memberList.length }}</div>
         <div class="member-list miniscrollbar">
-            <div class="list-item" v-for="member in memberList" :key="member._id" @click.stop="showMenu(page.to, member)" @contextmenu.prevent="showMenu(page.to, member)">
+            <div class="list-item" v-for="member in groupStore.memberList" :key="member._id" @click.stop="showMenu($event, pageStore.page.to, member)" @contextmenu.prevent="showMenu($event, pageStore.page.to, member)">
                 <div class="avatar">
-                    <img :src="getUserAvatar(user.avatar)" v-if="member._id == user._id" height='35' width='35' alt="">
-                    <img :src="getUserAvatar(member.avatar)" v-if="member._id != user._id" height='35' width='35' alt="">
+                    <img :src="getUserAvatar(userStore.user.avatar)" v-if="member._id == userStore.user._id" height='35' width='35' alt="">
+                    <img :src="getUserAvatar(member.avatar)" v-if="member._id != userStore.user._id" height='35' width='35' alt="">
                 </div>
                 <div class="info">
                     <div class="username line">{{ member.nickname }}</div>
                 </div>
-                <img src="@/assets/arrowDown.svg" height="19" v-if="member._id != user._id" @click="showMenu(page.to, member)">
+                <img src="@/assets/arrowDown.svg" height="19" v-if="member._id != userStore.user._id" @click="showMenu($event, pageStore.page.to, member)">
             </div>
         </div>
         <context-menu :config="contextMenuConfig"></context-menu>
         <div class="group-menu fadeIn" v-show="isScroller">
-            <div>GID: {{page.to._id}}</div>
+            <div>GID: {{pageStore.page.to._id}}</div>
 
             <div class="separator"></div>
 
             <div>
-                <div class="flex-start">群简介&nbsp;<a v-if="page.to.owner === user._id" @click="updateGroupDescription"><img src="@/assets/修改.svg"></a></div>
-                <div class="multiline">{{page.to.description==''?'无':page.to.description}}</div>
+                <div class="flex-start">群简介&nbsp;<a v-if="pageStore.page.to.owner === userStore.user._id" @click="updateGroupDescription"><img src="@/assets/修改.svg"></a></div>
+                <div class="multiline">{{pageStore.page.to.description || ''}}</div>
             </div>
 
             <div class="separator"></div>
 
-            <div class="item" @click="uploadGroupAvatar" v-if="page.to.owner === user._id">修改群组头像</div>
-            <input type="file" class="upload-hide" @change="getFile($event,1)" ref="groupAvatar" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
+            <div class="item" @click="groupAvatarRef.click" v-if="pageStore.page.to.owner === userStore.user._id">修改群组头像</div>
+            <input type="file" class="upload-hide" @change="uploadFile($event,1)" ref="groupAvatarRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
             
-            <div class="separator" v-if="page.to.owner === user._id"></div>
+            <div class="separator" v-if="pageStore.page.to.owner === userStore.user._id"></div>
             
-            <div class="item" @click="uploadGroupBanner" v-if="page.to.owner === user._id">修改群组横幅</div>
-            <input type="file" class="upload-hide" @change="getFile($event,2)" ref="groupBanner" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
+            <div class="item" @click="groupBannerRef.click" v-if="pageStore.page.to.owner === userStore.user._id">修改群组横幅</div>
+            <input type="file" class="upload-hide" @change="uploadFile($event,2)" ref="groupBannerRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
             
-            <div class="separator" v-if="page.to.owner === user._id"></div>
+            <div class="separator" v-if="pageStore.page.to.owner === userStore.user._id"></div>
             
             <div class="item exit flex-between-center" @click="exitGroup">离开群组<img src="@/assets/退出.svg"></div>
 
-            <div class="separator" v-if="page.to.owner === user._id"></div>
+            <div class="separator" v-if="pageStore.page.to.owner === userStore.user._id"></div>
 
-            <div class="item exit flex-between-center" v-if="page.to.owner === user._id" @click="dismissGroup">解散群组<img src="@/assets/解散.svg" height="19"></div>
+            <div class="item exit flex-between-center" v-if="pageStore.page.to.owner === userStore.user._id" @click="dismissGroup">解散群组<img src="@/assets/解散.svg" height="19"></div>
         </div>
     </div>
 </template>
 
-<script setup>
-import { reactive } from 'vue';
+<script lang="ts" setup>
+import { reactive, ref, watch } from 'vue';
 import ContextMenu from './ContextMenu.vue'
 import { getUserAvatar, getGroupBanner } from '@/utils/pathResolver';
 import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { useGroupStore } from '@/store/group'
 import { getMemberListAPI, updateGroupDescriptionAPI, exitGroupAPI, dismissGroupAPI, uploadGroupAvatarAPI, uploadGroupBannerAPI } from '@/api/group'
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { ResponseType } from '@/types/request';
 
 const userStore = useUserStore(),
     pageStore = usePageStore(),
     groupStore = useGroupStore()
-const memberList = ref([])
+
 const contextMenuConfig = reactive({
     x: null, y: null, display:'none'
 })
-const isScroller = ref(false)
+const isScroller = ref(false),
+    groupAvatarRef = ref(),
+    groupBannerRef = ref()
 
-watch(()=>pageStore.page, ()=>{ this.getMemberList() }, {immediate: true})
+watch(() => pageStore.page, () => { getMemberList() }, { immediate: true })
+
 // 获取成员列表
 function getMemberList(){
-    getMemberListAPI(this.page.to._id).then((resp)=>{
+    getMemberListAPI(pageStore.page.to._id).then((resp: ResponseType)=>{
         if(resp.code === 200) {
-            this.memberList = resp.data
             groupStore.memberList = resp.data
-        }else{
-            (this?.$message || console).error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
-function showMenu(from, to){
-    if(to._id !== this.user._id) 
-        this.contextMenuConfig = {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 2, from, to}
+
+// 群组菜单
+function showMenu($event: MouseEvent, from: any, to: any){
+    if(to._id !== userStore.user._id) 
+        Object.assign(contextMenuConfig, {x: $event.clientX-5, y: $event.clientY-5, display: 'flex', type: 2, from, to})
 }
+
 // 获取用户上传的图像
-function getFile(e,mode){
+function uploadFile(e: any, mode: number){
     let file = e.target.files[0]
 
     if(file.size/1024/1024 > 1){
-        return console.info('文件大小超过5MB限制！')
+        return console.info('文件大小超过1MB限制！')
     }
 
     // 封装formData 
     let formData = new FormData();
-    formData.append('groupId', this.page.to._id)
+    formData.append('groupId', pageStore.page.to._id)
     formData.append('filename', file.name)
     formData.append('fileType', file.type)
+    
     // 获取用户上传图片
     var reader = new FileReader()
     reader.readAsDataURL(file)
-    var that = this
-    reader.onload = function(e){
-        formData.append('file', this.result)
-        (mode == 1 ? uploadGroupAvatarAPI : uploadGroupBannerAPI)(formData).then((resp)=>{
+    reader.onload = function(){
+        formData.append('file', this.result as string);
+        (mode == 1 ? uploadGroupAvatarAPI : uploadGroupBannerAPI)(formData).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                that.$message.success(resp.msg)
+                ElMessage.success(resp.msg)
                 // TODO 群组刷新
                 if(mode == 1)
-                    groupStore.updateGroupAvatar([that.page.to._id, resp.data])
+                    groupStore.updateGroupAvatar([pageStore.page.to._id, resp.data])
                 else if(mode == 2){
-                    groupStore.updateGroupBanner([that.page.to._id, resp.data])
+                    groupStore.updateGroupBanner([pageStore.page.to._id, resp.data])
                 }
-            }else{
-                that.$message.error(resp.msg)
-            }
+            }else{ ElMessage.error(resp.msg) }
         })
     }
     
 }
+
 // 修改群组简介
 function updateGroupDescription(){
-    this.$prompt('长度<=40',"输入群简介",{
+    ElMessageBox.prompt('长度<=40',"输入群简介",{
         confirmButtonText: '提交',
         cancelButtonText: '取消',
         inputValidator: (data)=>{
             if(data.length <= 40) return true
-            return false
+            return '长度需小于等于40！'
         },
-        inputErrorMessage: '格式不正确'
     }).then(({value})=>{
-        let description = value.trim()
-        if(description.length == 0 || description.length > 40){
-            return console.info('超出长度(40)!'); 
-        }
-        updateGroupDescriptionAPI(pageStore.page.to._id, value).then((resp)=>{
+        updateGroupDescriptionAPI(pageStore.page.to._id, value.trim()).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                (this?.$message || console).log(resp.msg)
-                this.$store.commit('groupAbout/Update_Description', [this.page.to._id,resp.data])
-            }else{
-                (this?.$message || console).error('修改失败！')
-            }
+                ElMessage.success(resp.msg)
+                groupStore.updateDescription([pageStore.page.to._id,resp.data])
+            }else{ ElMessage.error('修改失败！') }
         })
-    }).catch(()=>{
-        (this?.$message || console).info('取消操作');   
     })
 }
-// 上传群组头像
-function uploadGroupAvatar(){
-    this.$refs.groupAvatar.click()
-}
-// 上传群组横幅
-function uploadGroupBanner(){
-    this.$refs.groupBanner.click()
-}
+
 // 退出群组
 function exitGroup(){
-    this.$confirm(`是否要退出群组：${this.page.to.name}`, '提示', {
+    ElMessageBox.confirm(`是否要退出群组：${pageStore.page.to.name}`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
     }).then(() => {
-        exitGroupAPI(pageStore.page.to._id, userStore.user._id).then((resp)=>{
+        exitGroupAPI(pageStore.page.to._id, userStore.user._id).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                (this?.$message || console).log(resp.msg)
+                ElMessage.success(resp.msg)
                 groupStore.getGroupList()
-                pageStore.enterPage()
-            }else{
-                (this?.$message || console).error(resp.msg)
-            }
+                pageStore.enterPage({})
+            }else{ ElMessage.error(resp.msg) }
         })
     })
 }
 // 解散群组
 function dismissGroup(){
-    this.$confirm(`是否要解散群组：${this.page.to.name}`, '提示', {
+    ElMessageBox.confirm(`是否要解散群组：${pageStore.page.to.name}`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
     }).then(() => {
-        dismissGroupAPI(pageStore.page.to._id).then((resp)=>{
+        dismissGroupAPI(pageStore.page.to._id).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                (this?.$message || console).log(resp.msg)
+                ElMessage.success(resp.msg)
                 // 群组刷新
                 groupStore.getGroupList()
-                pageStore.enterPage()
+                pageStore.enterPage({})
                     
-            }else{
-                (this?.$message || console).error(resp.msg)
-            }
+            }else{ ElMessage.error(resp.msg) }
         })
     })
 }

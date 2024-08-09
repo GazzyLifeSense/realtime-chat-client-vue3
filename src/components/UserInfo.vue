@@ -1,43 +1,43 @@
 <template>
     <div id="userInfo" class="flex-center" ref='menu' v-if="pageStore.userInfoConfig.show">
-         <div class="banner"></div>
-         <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="pageStore.userInfoConfig.show = false">
-         <div class="avatar">
+        <div class="banner"></div>
+        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="pageStore.userInfoConfig.show = false">
+        <div class="avatar">
             <img :src="getUserAvatar(user.avatar)">
             <div class="online">
         </div>
-         </div>
-         <div class="detail-wrap flex-center">
-             <div class="detail">
-                 <div class="nickname flex-start"><div class="label">昵称：</div>{{user.nickname}}&nbsp;</div>
-                 
-                 <div class="separator"></div>
-                 
-                 <div class="username">
-                    <h3>用户名</h3>
-                    <div class="text">{{user.username}}</div>
-                 </div>
+        </div>
+        <div class="detail-wrap flex-center">
+            <div class="detail">
+                <div class="nickname flex-start"><div class="label">昵称：</div>{{user.nickname}}&nbsp;</div>
                 
-                 <div class="separator"></div>
-                 
-                 <div class="location">
-                     <h3>归属地</h3>
-                     <div class="text">{{user.location}}</div>
-                 </div>
+                <div class="separator"></div>
+                
+                <div class="username">
+                <h3>用户名</h3>
+                <div class="text">{{user.username}}</div>
+                </div>
+            
+                <div class="separator"></div>
+                
+                <div class="location">
+                    <h3>归属地</h3>
+                    <div class="text">{{user.location}}</div>
+                </div>
 
-                 <div class="separator"></div>
-                 
-                 <div class="introduction">
-                     <h3 class="flex-start">个人介绍</h3>
-                     <div class="text">{{user.introduction==''?'此人很懒,没有留下任何信息':user.introduction}}</div>
-                 </div>
-                 
-                 <div class="separator"></div>
-                 
-                 <div class="regDate">
-                     <h3>注册时间</h3>
-                     <div class="text">{{new Date(parseInt(user.regDate)).toLocaleString()}}</div>
-                 </div>
+                <div class="separator"></div>
+                
+                <div class="introduction">
+                    <h3 class="flex-start">个人介绍</h3>
+                    <div class="text">{{user.introduction||''}}</div>
+                </div>
+                
+                <div class="separator"></div>
+                
+                <div class="regDate">
+                    <h3>注册时间</h3>
+                    <div class="text">{{new Date(parseInt(user.regDate)).toLocaleString()}}</div>
+                </div>
 
                 <div class="separator"></div>
 
@@ -47,7 +47,7 @@
 
                 <div class="opt flex-start" @click.stop="enterPrivateChat(user)" v-if="pageStore.userInfoConfig.type==2">发送信息</div>
             </div>
-         </div>
+        </div>
     </div>
 </template>
 
@@ -60,6 +60,7 @@ import { usePageStore } from '@/store/page'
 import { getValue } from '@/utils'
 import { useFriendStore } from '@/store/friend'
 import { useGroupStore } from '@/store/group'
+import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore(),
     friendStore = useFriendStore(),
@@ -78,16 +79,14 @@ watch(() => pageStore.userInfoConfig.id, (newVal) => {
 function applyFriend(){
     applyFriendAPI({userId: userStore.user._id, username: props.user.username}).then((resp)=>{
         if(resp.code === 200){
-            (this?.$message || console).log(resp.msg)
-        }else{
-            (this?.$message || console).error(resp.msg)
-        }
+            ElMessage.success(resp.msg)
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 进入私聊
 function enterPrivateChat(to){
-    pageStore.enterPage({type:1, to})
+    pageStore.enterPage({type:'private', to})
     pageStore.userInfoConfig.show = false
 }
 </script>

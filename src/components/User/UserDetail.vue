@@ -1,12 +1,12 @@
 <template>
-    <div id="userDetail" class="flex-center" ref='menu' v-if="open">
+    <div id="userDetail" class="flex-center" ref='menu' v-if="show">
         <div class="banner"></div>
-        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hide">
+        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hideUserDetail">
         <div class="avatar-wrap">
             <div class="mask">
-                <img :src="getUserAvatar(userStore.user.avatar)" class="avatar" title="上传头像" @click.stop="uploadAvatar">
+                <img :src="getUserAvatar(userStore.user.avatar)" class="avatar" title="上传头像" @click.stop="fileInputRef.click">
             </div>
-            <input type="file" hidden @change="getFile($event)" ref="file" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
+            <input type="file" hidden @change="uploadAvatar" ref="fileInputRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
             <div class="online"></div>
         </div>
         <div class="detail-wrap flex-center">
@@ -38,7 +38,7 @@
                 
                 <div class="introduction">
                     <h3 class="flex-start">个人介绍&nbsp;<a @click="updateIntroduction"><img src="@/assets/修改.svg"></a></h3>
-                    <div class="text">{{userStore.user.introduction==''?'此人很懒,没有留下任何信息':userStore.user.introduction}}</div>
+                    <div class="text">{{userStore.user.introduction || ''}}</div>
                 </div>
                 
                 <div class="separator"></div>
@@ -54,152 +54,134 @@
 
             <div class="separator"></div>
 
-                <div class="logout flex-start" @click.stop="logout"><img src="@/assets/logout.svg">&nbsp;注销</div>
+                <div class="logout flex-start" @click.stop="logout"><img src="@/assets/logout.svg">&nbsp;退出登录</div>
             </div>
         </div>
 
     </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { getUserAvatar } from '@/utils/pathResolver'
 import { useUserStore } from '@/store/user'
 import { updatePasswordAPI, updateIntroductionAPI, updateNicknameAPI, uploadAvatarAPI } from '@/api/user';
-import { inject } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { ResponseType } from '@/types/request';
+import { useSocketStore } from '@/store/socket';
 
-const props = defineProps({
-    open: null
+defineProps({
+    show: null
 })
+const emit = defineEmits(['update:show'])
 
-const userStore = useUserStore()
-const socketInstance = inject('socketInstance'),
-    router = useRouter()
+const fileInputRef = ref()
+const userStore = useUserStore(),
+    socketStore = useSocketStore()
+const router = useRouter()
 
-function hide(){
-    props.open = false
+function hideUserDetail(){
+    emit('update:show', false)
 }
-function getFile(e){
-    let file = e.target.files[0]
+
+// 头像上传
+function uploadAvatar(e: any){
+    console.log(e.target.files)
+    let file = e?.target?.files?.[0] 
     if(file.size/1024/1024 > 1){
-        return console.info('文件大小超过5MB限制！')
+        return ElMessage.warning('文件大小超过1MB限制！')
     }
     let formData = new FormData();
-    formData.append('userId', this.user._id)
+    formData.append('userId', userStore.user._id)
     formData.append('filename', file.name)
     formData.append('fileType', file.type)
     var reader = new FileReader()
     reader.readAsDataURL(file)
-    var that = this
     reader.onload = function(){
-        formData.append('file', this.result)
-        uploadAvatarAPI(formData).then((resp)=>{
+        formData.append('file', this.result as string)
+        uploadAvatarAPI(formData).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                that.$message.success(resp.msg)
-                userStore.user.avatar = resp.data;
-            }else{
-                that.$message.error(resp.msg)
-            }
+                ElMessage.success(resp.msg)
+                userStore.getUser()
+            }else{ ElMessage.error(resp.msg) }
         })
     }
 }
-function uploadAvatar(){
-    this.$refs.file.click()
-}
+
+// 修改昵称
 function updateNickname(){
-    this.$prompt('长度<8',"输入昵称",{
+    ElMessageBox.prompt('长度<8',"输入昵称",{
         confirmButtonText: '提交',
         cancelButtonText: '取消',
-        inputValidator: (data)=>{
-            if(data.length <= 8) return true
-            return false
+        inputValidator: (data: string)=>{
+            if(data.trim().length <= 8) return true
+            return '长度需小于等于8!'
         },
-        inputErrorMessage: '格式不正确'
     }).then(({value})=>{
-        let nickname = value.trim()
-        if(nickname.length == 0 || nickname.length > 8){
-            return console.info('超出长度(8)!'); 
-        }
-        updateNicknameAPI(userStore.user._id, value).then((resp)=>{
+        updateNicknameAPI(userStore.user._id, value.trim()).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                (this?.$message || console).log(resp.msg)
-                userStore.user.nickname = resp.data
-            }else{
-                (this?.$message || console).error('修改失败！')
-            }
+                ElMessage.success(resp.msg)
+                userStore.getUser()
+            }else{ ElMessage.error(resp.msg) }
         })
-    }).catch(()=>{
-        (this?.$message || console).info('取消操作');   
     })
 }
+
+// 修改个人介绍
 function updateIntroduction(){
-    this.$prompt('长度<25',"输入个人介绍",{
+    ElMessageBox.prompt('长度<25',"输入个人介绍",{
         confirmButtonText: '提交',
         cancelButtonText: '取消',
-        inputValidator: (data)=>{
-            if(data.length <= 25) return true
-            return false
+        inputValidator: (data: string)=>{
+            if(data.trim().length <= 25) return true
+            return '长度需小于25!'
         },
-        inputErrorMessage: '格式不正确'
     }).then(({value})=>{
-        let introduction = value.trim()
-        if(introduction.length == 0 || introduction.length > 25){
-            return console.info('超出长度(25)!'); 
-        }
-        updateIntroductionAPI(userStore.user._id, value).then((resp)=>{
+        updateIntroductionAPI(userStore.user._id, value.trim()).then((resp: ResponseType)=>{
             if(resp.code === 200){
-                (this?.$message || console).log(resp.msg)
-                this.$store.commit('userAbout/Set_Introduction', resp.data)
-            }else{
-                (this?.$message || console).error('修改失败！')
-            }
+                ElMessage.success(resp.msg)
+                userStore.getUser()
+            }else{ ElMessage.error(resp.msg) }
         })
-    }).catch(()=>{
-        (this?.$message || console).info('取消操作');   
     })
 }
+
+// 修改密码
 function updatePassword(){
-    this.$prompt('长度<15',"输入当前密码",{
+    ElMessageBox.prompt('长度<15',"输入当前密码",{
         confirmButtonText: '提交',
         cancelButtonText: '取消',
         inputType: 'password',
         inputValidator: (data)=>{
             if(data.length <= 15) return true
-            return false
+            return '长度需小于15!'
         },
-        inputErrorMessage: '格式不正确'
     }).then(({value})=>{
         let password = value
-        this.$prompt('长度<15',"输入新密码",{
-        confirmButtonText: '提交',
-        cancelButtonText: '取消',
-        inputType: 'password',
-        inputValidator: (data)=>{
-            if(data.length <= 15) return true
-            return false
-        },
-        inputErrorMessage: '格式不正确'
-        }).then(({value})=>{
-            let newPassword = value
-            updatePasswordAPI(userStore.user._id, password, newPassword).then((resp)=>{
-                if(resp.code === 200){
-                    (this?.$message || console).log(resp.msg)
-                    this.$router.replace("/")
-                }else{
-                    (this?.$message || console).error('修改失败！')
-                }
+        ElMessageBox.prompt('长度<15',"输入新密码",{
+            confirmButtonText: '提交',
+            cancelButtonText: '取消',
+            inputType: 'password',
+            inputValidator: (data)=>{
+                if(data.length <= 15) return true
+                return '长度需小于15!'
+            }}).then(({value})=>{
+                let newPassword = value
+                updatePasswordAPI(userStore.user._id, password, newPassword).then((resp: ResponseType)=>{
+                    if(resp.code === 200){
+                        ElMessage.success(resp.msg)
+                        router.replace("/")
+                    }else{ ElMessage.error(resp.msg) }
+                })
             })
-        }).catch(()=>{
-            (this?.$message || console).info('取消操作');   
-        })
-    }).catch(()=>{
-        (this?.$message || console).info('取消操作');   
     })
 }
-// 注销
+
+// 退出登录
 function logout(){
     sessionStorage.clear()
-    socketInstance.value.emit('logout')
+    socketStore.instance.emit('logout')
     router.push('/')
 }
 </script>
