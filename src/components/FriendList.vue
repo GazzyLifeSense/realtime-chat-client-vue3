@@ -46,12 +46,12 @@ watch(() => userStore.user._id, () => {
 
 // 进入私聊
 function enterPrivateChat(to){
-    pageStore.enterPage({type:'main', to})
+    pageStore.enterPage({position:'private', to})
     friendStore.setFriendNewStatus(to._id)
 }
 
 function showMenu(to){
-    contextMenuConfig = {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 1, to}
+    Object.assign(contextMenuConfig, {x: event.clientX-5, y: event.clientY-5, display: 'flex', type: 1, to})
 }
 
 onBeforeMount(()=>{

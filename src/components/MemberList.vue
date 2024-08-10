@@ -156,7 +156,7 @@ function exitGroup(){
             if(resp.code === 200){
                 ElMessage.success(resp.msg)
                 groupStore.getGroupList()
-                pageStore.enterPage({})
+                pageStore.enterPage()
             }else{ ElMessage.error(resp.msg) }
         })
     })
@@ -173,7 +173,7 @@ function dismissGroup(){
                 ElMessage.success(resp.msg)
                 // 群组刷新
                 groupStore.getGroupList()
-                pageStore.enterPage({})
+                pageStore.enterPage()
                     
             }else{ ElMessage.error(resp.msg) }
         })

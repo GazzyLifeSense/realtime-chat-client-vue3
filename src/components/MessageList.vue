@@ -1,8 +1,8 @@
 <template>
-    <section class="message-list-wrap" v-if="config.display != 'none'">
-        <div class="mask" @click.self="hide"></div>
+    <section class="message-list-wrap" v-if="show">
+        <div class="mask" @click.self="emit('update:show', false)"></div>
         <div id="messageList" class="flex-center" ref='menu'>
-            <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hide">
+            <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="emit('update:show', false)">
             <div class="detail-wrap flex-start-center miniscrollbar">{{ messageStore.messageList }}
                 <template v-if="Array.isArray(messageStore.messageList)">
                     <div class="detail flex-between-center" v-for="message of messageStore.messageList" :key="message._id" @click="enterPrivateChat(message.from)">
@@ -27,22 +27,18 @@ import { usePageStore } from '@/store/page'
 import { useMessageStore } from '@/store/message'
 import { useFriendStore } from '@/store/friend'
 
-const props = defineProps({ config: null })
+const props = defineProps({ show: null })
+const emit = defineEmits(['update:show'])
 
 const pageStore = usePageStore(),
     messageStore = useMessageStore(),
     friendStore = useFriendStore()
 
-function hide(){
-    props.config.display='none'
-    console.log(messageStore.messageList);
-}
-
 // 进入私聊
 function enterPrivateChat(toId) {
     const target = getValue(friendStore.friendList, '_id', toId)
-    pageStore.enterPage({ type: 'main', to: target })
-    props.config.display = 'none'
+    emit('update:show', false)
+    pageStore.enterPage({ position: 'private', to: target })
 }
 </script>
 

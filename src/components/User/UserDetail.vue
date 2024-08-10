@@ -1,7 +1,7 @@
 <template>
     <div id="userDetail" class="flex-center" ref='menu' v-if="show">
         <div class="banner"></div>
-        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="hideUserDetail">
+        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="emit('update:show', false)">
         <div class="avatar-wrap">
             <div class="mask">
                 <img :src="getUserAvatar(userStore.user.avatar)" class="avatar" title="上传头像" @click.stop="fileInputRef.click">
@@ -80,10 +80,6 @@ const fileInputRef = ref()
 const userStore = useUserStore(),
     socketStore = useSocketStore()
 const router = useRouter()
-
-function hideUserDetail(){
-    emit('update:show', false)
-}
 
 // 头像上传
 function uploadAvatar(e: any){

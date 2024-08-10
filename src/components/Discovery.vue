@@ -26,17 +26,18 @@
         </div>
     </div>
 </template>
-<script setup>
-import { getGroupBanner } from '@/utils/pathResolver'
+<script lang="ts" setup>
+import { getGroupAvatar, getGroupBanner } from '@/utils/pathResolver'
 import { useUserStore } from '@/store/user'
 import { applyGroupAPI, getRecommendGroupListAPI } from '@/api/group';
-import { onBeforeMount } from 'vue';
+import { onBeforeMount, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 const userStore = useUserStore()
-const groupList = ref([])
+const groupList = ref([] as GroupType[])
     
-function applyGroup(group){
+// 申请加入群组
+function applyGroup(group: GroupType){
     ElMessageBox.confirm(`是否申请添加群组：${group.name}`, '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -45,20 +46,17 @@ function applyGroup(group){
         applyGroupAPI(userStore.user._id, group._id).then((resp)=>{
             if(resp.code === 200) {
                 ElMessage.success(resp.msg)
-            }else{
-                ElMessage.error(resp.msg)
-            }
+            }else{ ElMessage.error(resp.msg) }
         })
     })
 }
     
 onBeforeMount(()=>{
+    // 获取推荐群组列表
     getRecommendGroupListAPI().then((resp)=>{
         if(resp.code === 200) {
-            this.groupList = resp.data
-        }else{
-            ElMessage.error(resp.msg)
-        }
+            groupList.value = resp.data
+        }else{ ElMessage.error(resp.msg) }
     })
 })
 </script>

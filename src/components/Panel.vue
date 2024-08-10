@@ -27,7 +27,7 @@
             <p class="title bounceInRight">其他能交友的地方</p>
             <button class="discover-btn flex-center line" @click.prevent="enterDiscovery()">
                 <img src="../assets/discover.svg" class="discover-img iconflex-center">
-                <div class="desc">探索公开服务器</div>
+                <div class="desc">探索推荐群组</div>
                 <svg class="arrow" fill="none" height="20" viewBox="0 0 20 20" width="20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="m5.41667 4.2625 5.66573 5.7375-5.66573 5.7375 1.74426 1.7625 7.42237-7.5-7.42237-7.5z" fill="currentColor" fill-rule="evenodd"></path></svg>
             </button>
         </div>
@@ -53,24 +53,20 @@ const to = ref(''),
 // 申请添加好友
 function applyFriend(){
     if(!userStore.user.username || to.value.trim().length === 0) return ElMessage.error('信息不能为空')
-    if(to.value === userStore.user.username) return console.info('请不要添加你自己！')
+    if(to.value === userStore.user.username) return ElMessage.info('请不要添加你自己！')
     applyFriendAPI(userStore.user._id, to.value).then((resp)=>{
-        if(resp.code === 200) {
+        if (resp.code === 200) {
             ElMessage.success(resp.msg)
-        }else{
-            ElMessage.success(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 申请加入群组
 function applyGroup(to){
     applyGroupAPI(userStore.user._id, to.value).then((resp)=>{
-        if(resp.code === 200) {
+        if (resp.code === 200) {
             ElMessage.success(resp.msg)
-        }else{
-            ElMessage.error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
@@ -78,17 +74,15 @@ function applyGroup(to){
 function getGroupsByName(){
     if(groupName.value.trim().length === 0) return ElMessage.error('信息不能为空')
     getGroupsByNameAPI(groupName.value).then((resp)=>{
-        if(resp.code === 200) {
+        if (resp.code === 200) {
             groupList.value = resp.data
-        }else{
-            ElMessage.error(resp.msg)
-        }
+        }else{ ElMessage.error(resp.msg) }
     })
 }
 
 // 进入探索页面
 function enterDiscovery(){
-    pageStore.enterPage({type:'discovery'})
+    pageStore.enterPage({position:'discovery'})
 }
 </script>
 <style lang="less" scoped>

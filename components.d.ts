@@ -10,6 +10,7 @@ declare module 'vue' {
     Base: typeof import('./src/components/Base.vue')['default']
     Chat: typeof import('./src/components/Chat.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']
+    CreateOrJoinGroup: typeof import('./src/components/Group/CreateOrJoinGroup.vue')['default']
     Discovery: typeof import('./src/components/Discovery.vue')['default']
     FriendList: typeof import('./src/components/FriendList.vue')['default']
     Login: typeof import('./src/components/Login.vue')['default']

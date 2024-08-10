@@ -86,7 +86,7 @@ function applyFriend(){
 
 // 进入私聊
 function enterPrivateChat(to){
-    pageStore.enterPage({type:'private', to})
+    pageStore.enterPage({position:'private', to})
     pageStore.userInfoConfig.show = false
 }
 </script>
@@ -97,7 +97,7 @@ function enterPrivateChat(to){
     position: fixed;
     max-width: 90vw;
     border: 6px solid;
-    border-image: linear-gradient(#0a0701, #5c3cec) 20;
+    border-image: linear-gradient(#5fca8e, #ededed) 43;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
@@ -110,7 +110,7 @@ function enterPrivateChat(to){
     .banner{
         width: 100%;
         height: 3.75em;
-        background: linear-gradient(to right,rgb(70, 59, 95),rgb(32, 36, 34));
+        background: linear-gradient(to right, #3c364a, #c6afd9);
     }
     .cancel{
         position: absolute;
@@ -137,8 +137,8 @@ function enterPrivateChat(to){
             background-color: #21A65A;
             height: 1.625em;
             width: 1.625em;        
-            top: 3.4325em;
-            right: -5px;
+            top: 2.8em;
+            right: -8px;
             z-index: 1;
             position: absolute;
             border-radius: 50%;
@@ -148,7 +148,7 @@ function enterPrivateChat(to){
     .detail-wrap{
         width: 100%;
         padding: 3em 1em 1em;
-        background: linear-gradient(to bottom,rgb(17, 6, 17), 70%, rgb(39, 36, 192));
+        background: linear-gradient(to bottom, #e1bfe1, 70%, #7f7dd4);
         font-size: .875em;
         .detail{
             font-size: 1.25em;

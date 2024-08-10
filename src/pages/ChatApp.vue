@@ -1,8 +1,17 @@
 <template>
     <div id="chat-app" class="full">
+        <!-- 侧边栏 -->
         <SideBar />
-        <div style="display: flex;flex: 1;">
-            <MiddleBar />
+
+        <!-- 中置栏 -->
+        <div class="chat-mid el-col-6" :class="{ 'fold': IsMidBarFold }" >
+            <FriendList v-if="pageStore.page.position!=='group'"/>
+            <MemberList v-if="pageStore.page.position=='group'"/>
+            <UserBar />
+        </div>
+
+        <!-- 内容 -->
+        <div class="chat-main">
             <Panel v-if="pageStore.page.position==='main'" />
             <Chat v-if="['private','group'].indexOf(pageStore.page.position) != -1" />
             <Discovery v-if="pageStore.page.position==='discovery'"/>
@@ -14,12 +23,14 @@
 </template>
 
 <script lang="ts" setup>
-import { watch, onMounted, onBeforeUnmount} from 'vue'
+import { watch, onMounted, ref} from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { io } from "socket.io-client"
 import { SocketIP } from '@/config/index.js'
 import SideBar from '@/components/SideBar.vue'
-import MiddleBar from '@/components/MiddleBar.vue'
+import UserBar from '@/components/UserBar.vue'
+import MemberList from '@/components/MemberList.vue'
+import FriendList from '@/components/FriendList.vue'
 import Panel from '@/components/Panel.vue'
 import Chat from '@/components/Chat.vue'
 import Discovery from '@/components/Discovery.vue'
@@ -40,6 +51,9 @@ const userStore = useUserStore(),
     socketStore = useSocketStore(),
     router = useRouter()
 
+const IsMidBarFold = ref(false)
+
+// 内容切换
 watch(()=>pageStore.page,(newVal, oldVal)=>{
     if(newVal.position == 'main' && oldVal && oldVal.position == 'group'){
         socketStore.instance.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldVal.to._id})
@@ -48,7 +62,7 @@ watch(()=>pageStore.page,(newVal, oldVal)=>{
 
 onMounted(async ()=>{
     // TODO pinia persist
-    
+
     // 验证身份
     userStore.getUser().then(async (resp) => {
         if (resp.code === 200) {
@@ -130,10 +144,6 @@ onMounted(async ()=>{
     })
 })
 
-onBeforeUnmount(()=>{
-    sessionStorage.removeItem('store')
-})
-
 onBeforeRouteLeave ((to, _from, next)=>{
     if(to.path == '/' && socketStore.instance.connected) {
         socketStore.instance.disconnect();
@@ -149,4 +159,19 @@ onBeforeRouteLeave ((to, _from, next)=>{
         display: flex;
         background: white;
     }
+    .chat-mid{
+        min-width: 0;
+        width: 60vw;
+        max-width: 260px;
+        display: flex;
+        flex-direction: column;
+        background: #2E3237;
+        position: relative;
+        overflow: hidden;
+    }
+    .fold{
+        width: 0 !important;
+        overflow-x: hidden;
+    }
+    .chat-main{ flex: 1; overflow: auto; }
 </style>

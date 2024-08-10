@@ -20,7 +20,7 @@ export const usePageStore = defineStore('page',{
     }),
     actions:{
         // 进入聊天界面
-        enterPage({ position = 'main' as PagePositionType, to = { _id: '' } }) {
+        enterPage({ position, to = { _id: '' } } = { position: 'main' as PagePositionType, to: { _id: ''}}) {
             const socketStore = useSocketStore()
 
             switch(position){

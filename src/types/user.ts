@@ -1,4 +1,4 @@
-interface userType{
+interface UserType{
     _id: string,
     avatar: string,
     username: string,

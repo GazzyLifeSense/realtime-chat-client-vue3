@@ -7,7 +7,7 @@ import { ElMessage } from 'element-plus'
 export const useGroupStore = defineStore('group',{
     state: ()=>({
         currentGroupId: '',
-        groupList: [] as {_id: string, banner: string, hasNew: number}[],
+        groupList: [] as GroupType[],
         memberList: [] as any[],
         groupApplyList: [],
     }),
