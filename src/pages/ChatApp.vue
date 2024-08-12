@@ -177,7 +177,6 @@ onBeforeRouteLeave ((to, _from, next)=>{
         flex-direction: column;
         background: #2E3237;
         position: relative;
-        overflow: hidden;
     }
     .fold{
         width: 0 !important;
