@@ -95,9 +95,9 @@ function transferGroup(){
     })
 }
 
-function showInfo(id) {
+function showInfo(userId) {
     // 显示用户信息面板
-    pageStore.userInfoConfig = { show: true, id, isFriend: props.config.type == 1 ? true : false }
+    pageStore.userInfoCardConfig = { show: true, userId }
     props.config.display = 'none'
 }
 </script>

@@ -19,7 +19,7 @@ const UserLoginUrl = '/api/login',
 
 // TODO 密码加密传输
 // 登录
-function userLogin(user: {username: string, password: string}){
+function userLogin(user: {username: string, password: string}): Promise<ResponseType>{
     return request.post(UserLoginUrl, user).then((resp: ResponseType)=>{
         if(resp.code === 200) {
             // 存储token
@@ -35,62 +35,62 @@ function userRegister(user: {nickname: string, username: string, password: strin
 }
 
 // 获取用户信息
-function getUserAPI(){
+function getUserAPI(): Promise<ResponseType>{
     return request.post(GetUserUrl)
 }
 
 // 获取申请信息数量
-function getAppliesCountAPI(userId: string){
+function getAppliesCountAPI(userId: string): Promise<ResponseType>{
     return request.post(GetAppliesCountUrl, {userId})
 }
 
 // 获取好友申请信息
-function getFriendAppliesAPI(userId: string){
+function getFriendAppliesAPI(userId: string): Promise<ResponseType>{
     return request.post(GetFriendAppliesUrl, {userId})
 }
 
 // 获取群组申请信息
-function getGroupAppliesAPI(userId: string){
+function getGroupAppliesAPI(userId: string): Promise<ResponseType>{
     return request.post(GetGroupAppliesUrl, {userId})
 }
 
 // 接受好友申请
-function acceptFriendApplyAPI(from: string, userId: string){
+function acceptFriendApplyAPI(from: string, userId: string): Promise<ResponseType>{
     return request.post(AcceptFriendApplyUrl, {from, userId})
 }
 
 // 拒绝好友申请
-function rejectFriendApplyAPI(from: string, userId: string){
+function rejectFriendApplyAPI(from: string, userId: string): Promise<ResponseType>{
     return request.post(RejectFriendApplyUrl, {from, userId})
 }
 
 // 接收群组申请
-function acceptGroupApplyAPI(from: string, userId: string){
-    return request.post(AcceptGroupApplyUrl, {from, userId})
+function acceptGroupApplyAPI(from: string, groupId: string): Promise<ResponseType>{
+    return request.post(AcceptGroupApplyUrl, {from, groupId})
 }
 
 // 拒绝群组申请
-function rejectGroupApplyAPI(from: string, userId: string){
-    return request.post(RejectGroupApplyUrl, {from, userId})
+function rejectGroupApplyAPI(from: string, groupId: string): Promise<ResponseType>{
+    return request.post(RejectGroupApplyUrl, {from, groupId})
 }
 
 // 更改密码
-function updatePasswordAPI(userId: string, password: string, newPassword: string){
+function updatePasswordAPI(userId: string, password: string, newPassword: string): Promise<ResponseType>{
     return request.post(UpdatePasswordUrl, { userId, password, newPassword})
 }
 
 // 更改个人简介
-function updateIntroductionAPI(userId: string, introduction: string){
+function updateIntroductionAPI(userId: string, introduction: string): Promise<ResponseType>{
     return request.post(UpdateIntroductionUrl, { userId, introduction })
 }
 
 // 更改昵称
-function updateNicknameAPI(userId: string, nickname: string){
+function updateNicknameAPI(userId: string, nickname: string): Promise<ResponseType>{
     return request.post(UpdateNicknameUrl, { userId, nickname})
 }
 
 // 更改昵称
-function uploadAvatarAPI(formData: FormData){
+function uploadAvatarAPI(formData: FormData): Promise<ResponseType>{
     return request.post(UploadAvatarUrl, formData, { headers:{ 'Content-Type': 'multipart/formdata'} })
 }
 

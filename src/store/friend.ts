@@ -6,10 +6,14 @@ import { ElMessage } from 'element-plus'
 
 export const useFriendStore = defineStore('friend', {
     state: () => ({
-        friendList: [] as {_id: string, hasNew: number}[],
-        friendApplyList: []
+        friendList: [] as FriendType[],
+        friendApplyList: [] as FriendApplyType[]
     }),
     actions:{
+        // 获取好友信息
+        getFriend(userId: string){
+            return this.friendList.find((f)=>f._id == userId)
+        },
         // 刷新好友列表
         getFriendList(){
             const userStore = useUserStore()

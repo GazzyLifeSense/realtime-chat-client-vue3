@@ -7,6 +7,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ApplyList: typeof import('./src/components/Apply/ApplyList.vue')['default']
+    ApplyListPanel: typeof import('./src/components/Apply/ApplyListPanel.vue')['default']
+    ApplyPanel: typeof import('./src/components/Apply/ApplyPanel.vue')['default']
     Base: typeof import('./src/components/Base.vue')['default']
     Chat: typeof import('./src/components/Chat.vue')['default']
     ContextMenu: typeof import('./src/components/ContextMenu.vue')['default']
@@ -15,7 +18,7 @@ declare module 'vue' {
     FriendList: typeof import('./src/components/FriendList.vue')['default']
     Login: typeof import('./src/components/Login.vue')['default']
     MainWrap: typeof import('./src/components/.vue')['default']
-    MemberList: typeof import('./src/components/MemberList.vue')['default']
+    MemberList: typeof import('./src/components/Group/MemberList.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
     MiddleBar: typeof import('./src/components/MiddleBar.vue')['default']
     NotFound: typeof import('./src/components/NotFound.vue')['default']
@@ -24,8 +27,9 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SideBar: typeof import('./src/components/SideBar.vue')['default']
-    UserBar: typeof import('./src/components/UserBar.vue')['default']
+    UserBar: typeof import('./src/components/User/UserBar.vue')['default']
     UserDetail: typeof import('./src/components/User/UserDetail.vue')['default']
     UserInfo: typeof import('./src/components/UserInfo.vue')['default']
+    UserInfoCard: typeof import('./src/components/User/UserInfoCard.vue')['default']
   }
 }

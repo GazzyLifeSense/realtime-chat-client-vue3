@@ -13,7 +13,7 @@ function getValue(arr: [], key: string, value: any, path = ''){
 
 // 判断是否为链接
 function isLink(content: string){
-  if(/^http/.test(content)) return true
+  if(/^http/.test(content.toLowerCase())) return true
   return false
 }
 

@@ -64,10 +64,11 @@ onBeforeMount(()=>{
 #discovery{
     flex: 1;
     min-width: 450px;
+    min-height: 100%;
     color: white;
     background: #37393F;
     padding: 32px 16px 32px 32px;
-    overflow-y: scroll;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     .header{

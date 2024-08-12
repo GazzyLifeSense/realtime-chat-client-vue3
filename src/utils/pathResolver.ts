@@ -1,6 +1,6 @@
 const ASSETS_PATH = '/src/assets'
 function getUserAvatar(name: string){
-    return name ? `${ASSETS_PATH}/avatar/${name}?${Date.now()}` : `${ASSETS_PATH}/girl-6.svg`
+    return name ? `${ASSETS_PATH}/avatar/${name}?${Date.now()}` : `${ASSETS_PATH}/logo.jpg`
 }
 
 function getGroupAvatar(name: string){

@@ -10,7 +10,7 @@
             <!-- 其他人发送的消息 -->
             <div class="othersmsgpack fadeIn" v-if="item.from !== userStore.user._id">
 
-              <div class="avatar" @click="pageStore.userInfoConfig = {show: true, id: item.from, isFriend: pageStore.page.position=='private'?true:false}">
+              <div class="avatar" style="cursor: pointer;" @click="pageStore.userInfoCardConfig = {show: true, userId: item.from}">
                 <img :src="pageStore.page.position=='private'?getUserAvatar(pageStore.page.to.avatar):getUserAvatar(otherAvatar(item.from))" width="40px" height="40px" />
               </div>
               
@@ -23,7 +23,7 @@
                 <div class="content" style="text-align: left;">
                   <div class="text" v-if="!isLink(item.content) && item.isPic == 0">{{ decodeEmoji(item.content) }}</div>
                   <a :href="item.content" v-if="isLink(item.content)  && item.isPic == 0" target="_blank">{{ item.content }}</a>
-                  <img :src="getChatPic(item.content)" v-if="item.isPic == 1" class="pic">
+                  <ElImage :src="getChatPic(item.content)" :preview-src-list="[getChatPic(item.content)]" v-if="item.isPic == 1" class="pic" />
                 </div>
               </div>
             </div>
@@ -44,7 +44,7 @@
                 <div class="content" style="text-align: left;">
                   <div class="text" v-if="!isLink(item.content) && item.isPic == 0">{{ decodeEmoji(item.content) }}</div>
                   <a :href="item.content" v-if="isLink(item.content)  && item.isPic == 0" target="_blank">{{ item.content }}</a>
-                  <img :src="getChatPic(item.content)" v-if="item.isPic == 1" class="pic">
+                  <ElImage :src="getChatPic(item.content)" :preview-src-list="[getChatPic(item.content)]" v-if="item.isPic == 1" class="pic" />
                 </div>
               </div>
             </div>
@@ -66,7 +66,7 @@
                 
                 <img src="../assets/图片.svg" class="icon" @click="sendPic">
                 <img src="../assets/表情.svg" class="icon" @click="showEmojiList = !showEmojiList">
-                <div class="emoji-list-wrap fadeIn" @mouseleave="showEmojiList = false" :style="{'display':showEmojiList?'block':'none'}">
+                <div class="emoji-list-wrap" @mouseleave="showEmojiList = false" :style="{'display':showEmojiList?'block':'none'}">
                   <div class="emoji-list">
                     <a v-for="emoji of emojiList" @click="msg+=emoji">{{ emoji }}</a>
                   </div>
@@ -87,10 +87,10 @@ import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { useGroupStore } from '@/store/group'
 import { useSocketStore } from '@/store/socket'
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { sendPicAPI } from '@/api/message'
 import { useMessageStore } from '@/store/message'
-import { ElMessage } from 'element-plus'
+import { ElImage, ElMessage } from 'element-plus'
 import { ResponseType } from '@/types/request'
 
 const userStore = useUserStore(),
@@ -108,9 +108,9 @@ const msg = ref(''),
   picRef = ref()
 
 // 对方的昵称
-const otherNickname = computed((id: any) => groupStore.getMemberById(id, { nickname: 'unknown' }).nickname)
+const otherNickname = (id: any) => groupStore.getMemberById(id, { nickname: 'unknown' }).nickname
 // 对方的头像
-const otherAvatar = computed((id: any) => groupStore.getMemberById(id)?.avatar)
+const otherAvatar = (id: any) => groupStore.getMemberById(id)?.avatar
 
 function sendMsg(){
     if(msg.value.trim().length === 0) return ElMessage.error('输入内容不能为空！');

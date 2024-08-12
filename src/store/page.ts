@@ -12,10 +12,9 @@ export const usePageStore = defineStore('page',{
             position: 'main' as PagePositionType,
             to: { _id: '' } as any,
         },
-        userInfoConfig: {
+        userInfoCardConfig: {
             show: false,
-            id: '',
-            isFriend: false
+            userId: '',
         }
     }),
     actions:{
@@ -28,7 +27,7 @@ export const usePageStore = defineStore('page',{
                     const messageStore = useMessageStore(),
                         friendStore = useFriendStore()
                     // 清空消息列记录
-                    messageStore.messageList = []
+                    messageStore.clearReadMsg(to._id, 'private')
                     // 取消新消息标志
                     friendStore.setFriendNewStatus(to._id)
                     break
@@ -38,7 +37,7 @@ export const usePageStore = defineStore('page',{
                         groupStore = useGroupStore()
                     groupStore.currentGroupId = to._id
                     // 清空消息列记录
-                    messageStore.messageList = []
+                    messageStore.clearReadMsg(to._id, 'group')
                     // 取消新消息标志
                     groupStore.setGroupNewStatus(to._id)
                     socketStore.instance.emit('enterGroupChat', { token: sessionStorage.getItem('securityToken'), groupId: to._id })
@@ -47,6 +46,5 @@ export const usePageStore = defineStore('page',{
             }
             this.page = { position, to }
         },
-        // 
     }
 })

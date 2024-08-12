@@ -8,8 +8,8 @@ export const useGroupStore = defineStore('group',{
     state: ()=>({
         currentGroupId: '',
         groupList: [] as GroupType[],
-        memberList: [] as any[],
-        groupApplyList: [],
+        memberList: [] as UserType[],
+        groupApplyList: [] as GroupApplyType[],
     }),
     actions:{
         // 获取群组列表
@@ -38,28 +38,28 @@ export const useGroupStore = defineStore('group',{
             return defaultValue
         },
         
-        updateGroupAvatar(value){
+        updateGroupAvatar(value: any){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
                     this.groupList[i],'avatar',value[1]
                 }
             }
         },
-        updateGroupBanner(value){
+        updateGroupBanner(value: any){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
                     this.groupList[i].banner = value[1]
                 }
             }
         },
-        updateDescription(value){
+        updateDescription(value: any){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
                     this.groupList[i],'description',value[1]
                 }
             }
         },
-        updateOwner(value){
+        updateOwner(value: any){
             for(let i = 0; i < this.groupList.length; i++){
                 if(this.groupList[i]._id == value[0]){
                     this.groupList[i].owner = value[1]

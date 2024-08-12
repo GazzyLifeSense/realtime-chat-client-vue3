@@ -1,7 +1,7 @@
 <template>
-    <div id="userInfo" class="flex-center" ref='menu' v-if="pageStore.userInfoConfig.show">
+    <div id="userInfo" class="flex-center" ref='menu' v-if="pageStore.userInfoCardConfig.show">
         <div class="banner"></div>
-        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="pageStore.userInfoConfig.show = false">
+        <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="pageStore.userInfoCardConfig.show = false">
         <div class="avatar">
             <img :src="getUserAvatar(user.avatar)">
             <div class="online">
@@ -41,11 +41,11 @@
 
                 <div class="separator"></div>
 
-                <div class="opt flex-start" @click.stop="applyFriend" v-if="pageStore.userInfoConfig.type==2">申请好友</div>
+                <div class="opt flex-start" @click.stop="applyFriend" v-if="!isFriend">申请好友</div>
                 
                 <div class="separator"></div>
 
-                <div class="opt flex-start" @click.stop="enterPrivateChat(user)" v-if="pageStore.userInfoConfig.type==2">发送信息</div>
+                <div class="opt flex-start" @click.stop="enterPrivateChat(user)" v-if="isFriend">发送信息</div>
             </div>
         </div>
     </div>
@@ -67,17 +67,20 @@ const userStore = useUserStore(),
     groupStore = useGroupStore(),
     pageStore = usePageStore()
 
-const user = ref({})
 // 获取用户信息
-watch(() => pageStore.userInfoConfig.id, (newVal) => {
-    if(newVal)
-        user.value = (pageStore.userInfoConfig.isFriend ? getValue(friendStore.friendList, '_id', newVal)
-            : getValue(groupStore.memberList, '_id', newVal)) || {}
+const user = ref({})
+const isFriend = ref(false)
+watch(() => pageStore.userInfoCardConfig.userId, (newVal) => {
+    if(newVal){
+        user.value = getValue(friendStore.friendList, '_id', newVal)
+        if(user.value) isFriend.value = true;
+        else user.value = getValue(groupStore.memberList, '_id', newVal) || {}
+    }
 })
 
 // 申请好友
 function applyFriend(){
-    applyFriendAPI({userId: userStore.user._id, username: props.user.username}).then((resp)=>{
+    applyFriendAPI({userId: userStore.user._id, username: user.username}).then((resp)=>{
         if(resp.code === 200){
             ElMessage.success(resp.msg)
         }else{ ElMessage.error(resp.msg) }
@@ -87,7 +90,7 @@ function applyFriend(){
 // 进入私聊
 function enterPrivateChat(to){
     pageStore.enterPage({position:'private', to})
-    pageStore.userInfoConfig.show = false
+    pageStore.userInfoCardConfig.show = false
 }
 </script>
 

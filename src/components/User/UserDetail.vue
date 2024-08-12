@@ -177,7 +177,7 @@ function updatePassword(){
 // 退出登录
 function logout(){
     sessionStorage.clear()
-    socketStore.instance.emit('logout')
+    if(socketStore.instance?.connected) socketStore.instance.emit('logout')
     router.push('/')
 }
 </script>

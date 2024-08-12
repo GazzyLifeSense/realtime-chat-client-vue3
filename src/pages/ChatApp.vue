@@ -18,7 +18,7 @@
         </div>
 
         <!-- 用户信息卡片 -->
-        <UserInfo />
+        <UserInfoCard />
     </div>
 </template>
 
@@ -28,13 +28,13 @@ import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { io } from "socket.io-client"
 import { SocketIP } from '@/config/index.js'
 import SideBar from '@/components/SideBar.vue'
-import UserBar from '@/components/UserBar.vue'
-import MemberList from '@/components/MemberList.vue'
+import UserBar from '@/components/User/UserBar.vue'
+import MemberList from '@/components/Group/MemberList.vue'
 import FriendList from '@/components/FriendList.vue'
 import Panel from '@/components/Panel.vue'
 import Chat from '@/components/Chat.vue'
 import Discovery from '@/components/Discovery.vue'
-import UserInfo from '@/components/UserInfo.vue'
+import UserInfoCard from '@/components/User/UserInfoCard.vue'
 import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { useFriendStore } from '@/store/friend'
@@ -85,13 +85,23 @@ onMounted(async ()=>{
                 socketStore.instance.on(userStore.user._id, (resp) => {
                     if([1,2,3,4,5,6,7,8,10,11,12,999].indexOf(resp.code) != -1){
                         console.log('callback1:',resp, pageStore.page)
-                        if(resp.code == 1 && resp.data.from != userStore.user._id && (pageStore.page.position == 'main' || ( pageStore.page.position != 'group' && pageStore.page.to?._id != resp.data?.from) || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))){
-                            // 其它私聊消息提示
+                        // 其它私聊消息提示 (发送者不是自己 且 (不在私聊窗口 或 私聊对象与该消息发送者不一致))
+                        if(resp.code == 1 
+                            && resp.data.from != userStore.user._id 
+                            && (pageStore.page.position != 'private' 
+                            || ( pageStore.page.position == 'private' && pageStore.page.to?._id != resp.data?.from)) 
+                        ){
                             friendStore.setFriendNewStatus(resp.data.from, Date.now())
-                            messageStore.messageList.push(resp.data)
-                        }else if(resp.code === 2 && resp.data.from != userStore.user._id && (pageStore.page.position != 'group' || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))){
-                            // 其它群组消息提示
+                            messageStore.newMsgQueue.push(resp.data)
+                        }
+                        // 其它群组消息提示 (发送者不是自己 且 (不在群聊窗口 或 群聊与该消息发送目标群聊不一致))
+                        else if(resp.code === 2 
+                            && resp.data.from != userStore.user._id 
+                            && (pageStore.page.position != 'group' 
+                            || ( pageStore.page.position == 'group' && pageStore.page.to?._id != resp.data?.to))
+                        ){
                             groupStore.setGroupNewStatus(resp.data.to, Date.now())
+                            messageStore.newMsgQueue.push(resp.data)
                         // 新好友申请提示
                         }else if(resp.code === 3){
                             userStore.getAppliesCount()
@@ -145,7 +155,7 @@ onMounted(async ()=>{
 })
 
 onBeforeRouteLeave ((to, _from, next)=>{
-    if(to.path == '/' && socketStore.instance.connected) {
+    if(to.path == '/' && socketStore.instance?.connected) {
         socketStore.instance.disconnect();
     }
     next()

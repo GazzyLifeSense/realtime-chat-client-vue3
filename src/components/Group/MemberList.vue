@@ -22,8 +22,8 @@
             </div>
         </div>
         <context-menu :config="contextMenuConfig"></context-menu>
-        <div class="group-menu fadeIn" v-show="isScroller">
-            <div>GID: {{pageStore.page.to._id}}</div>
+        <div class="group-menu" v-show="isScroller">
+            <div style="word-break: break-all;">GID: {{pageStore.page.to._id}}</div>
 
             <div class="separator"></div>
 
@@ -35,12 +35,12 @@
             <div class="separator"></div>
 
             <div class="item" @click="groupAvatarRef.click" v-if="pageStore.page.to.owner === userStore.user._id">修改群组头像</div>
-            <input type="file" class="upload-hide" @change="uploadFile($event,1)" ref="groupAvatarRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
+            <input type="file" hidden @change="uploadFile($event,1)" ref="groupAvatarRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
             
             <div class="separator" v-if="pageStore.page.to.owner === userStore.user._id"></div>
             
             <div class="item" @click="groupBannerRef.click" v-if="pageStore.page.to.owner === userStore.user._id">修改群组横幅</div>
-            <input type="file" class="upload-hide" @change="uploadFile($event,2)" ref="groupBannerRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
+            <input type="file" hidden @change="uploadFile($event,2)" ref="groupBannerRef" accept=".jpg,.jpeg,.png,.webp,.ico,.svg">
             
             <div class="separator" v-if="pageStore.page.to.owner === userStore.user._id"></div>
             
@@ -55,14 +55,13 @@
 
 <script lang="ts" setup>
 import { reactive, ref, watch } from 'vue';
-import ContextMenu from './ContextMenu.vue'
+import ContextMenu from '@/components/ContextMenu.vue'
 import { getUserAvatar, getGroupBanner } from '@/utils/pathResolver';
 import { useUserStore } from '@/store/user'
 import { usePageStore } from '@/store/page'
 import { useGroupStore } from '@/store/group'
 import { getMemberListAPI, updateGroupDescriptionAPI, exitGroupAPI, dismissGroupAPI, uploadGroupAvatarAPI, uploadGroupBannerAPI } from '@/api/group'
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ResponseType } from '@/types/request';
 
 const userStore = useUserStore(),
     pageStore = usePageStore(),
@@ -79,7 +78,7 @@ watch(() => pageStore.page, () => { getMemberList() }, { immediate: true })
 
 // 获取成员列表
 function getMemberList(){
-    getMemberListAPI(pageStore.page.to._id).then((resp: ResponseType)=>{
+    getMemberListAPI(pageStore.page.to._id).then((resp)=>{
         if(resp.code === 200) {
             groupStore.memberList = resp.data
         }else{ ElMessage.error(resp.msg) }
@@ -111,7 +110,7 @@ function uploadFile(e: any, mode: number){
     reader.readAsDataURL(file)
     reader.onload = function(){
         formData.append('file', this.result as string);
-        (mode == 1 ? uploadGroupAvatarAPI : uploadGroupBannerAPI)(formData).then((resp: ResponseType)=>{
+        (mode == 1 ? uploadGroupAvatarAPI : uploadGroupBannerAPI)(formData).then((resp)=>{
             if(resp.code === 200){
                 ElMessage.success(resp.msg)
                 // TODO 群组刷新
@@ -136,7 +135,7 @@ function updateGroupDescription(){
             return '长度需小于等于40！'
         },
     }).then(({value})=>{
-        updateGroupDescriptionAPI(pageStore.page.to._id, value.trim()).then((resp: ResponseType)=>{
+        updateGroupDescriptionAPI(pageStore.page.to._id, value.trim()).then((resp)=>{
             if(resp.code === 200){
                 ElMessage.success(resp.msg)
                 groupStore.updateDescription([pageStore.page.to._id,resp.data])
@@ -152,7 +151,7 @@ function exitGroup(){
         cancelButtonText: '取消',
         type: 'warning'
     }).then(() => {
-        exitGroupAPI(pageStore.page.to._id, userStore.user._id).then((resp: ResponseType)=>{
+        exitGroupAPI(pageStore.page.to._id, userStore.user._id).then((resp)=>{
             if(resp.code === 200){
                 ElMessage.success(resp.msg)
                 groupStore.getGroupList()
@@ -168,7 +167,7 @@ function dismissGroup(){
         cancelButtonText: '取消',
         type: 'warning'
     }).then(() => {
-        dismissGroupAPI(pageStore.page.to._id).then((resp: ResponseType)=>{
+        dismissGroupAPI(pageStore.page.to._id).then((resp)=>{
             if(resp.code === 200){
                 ElMessage.success(resp.msg)
                 // 群组刷新
@@ -247,11 +246,10 @@ function dismissGroup(){
     .group-menu{
         background: #101316;
         padding: 6px 8px;
-        width: 226px;
+        width: 100%;
         border-radius: 5px;
         position: absolute;
         top: 50px;
-        left: 12px;
         font-size: 14px;
         >*:not([class='separator']){
             padding: 6px 8px;

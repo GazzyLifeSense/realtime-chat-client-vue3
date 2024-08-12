@@ -8,18 +8,20 @@ import { ElMessage } from 'element-plus'
 import { useSocketStore } from './socket'
 
 export const useMessageStore = defineStore('message',{
-    state:(): { messageList: any, msgList: any }=>({
-        messageList: [],
-        msgList: []
+    state:()=>({
+        // 新未读消息队列
+        newMsgQueue: [] as MessageType[],
+        // 当前聊天窗口消息记录
+        msgList: [] as MessageType[]
     }),
     actions:{
-        // 追加消息
-        appendMessage(value){
-            this.messageList.push(value)
-        },
-        // 清除该用户的消息
-        resetMessage(value){
-            this.messageList = this.messageList.filter((item)=>item.from != value)
+        // 去除已读消息源
+        clearReadMsg(targetId: string, type: 'private' | 'group'){
+            this.newMsgQueue = this.newMsgQueue.filter((item: MessageType)=>
+                type == 'private' ? 
+                    item.from != targetId && item.type == 1 || item.type != 1
+                    : item.to != targetId && item.type == 2 || item.type != 2
+            )
         },
         // 加载更多消息
         loadMoreMsgs(callback: Function){

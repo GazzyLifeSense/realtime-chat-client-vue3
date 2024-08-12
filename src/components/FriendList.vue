@@ -61,7 +61,7 @@ onBeforeMount(()=>{
 
 <style lang="less" scoped>
 #friend-list-wrap{
-    width: 100%;
+    height: 100%;
     color: white;
     max-height: calc(100% - 58px);
     .title{
@@ -81,7 +81,6 @@ onBeforeMount(()=>{
             justify-content: flex-start;
             align-items: center;
             margin: 5px 0;
-            height: 40px;
             width: 100%;
             cursor: pointer;
             position: relative;
@@ -89,11 +88,8 @@ onBeforeMount(()=>{
                 height: 35px;
                 width: 35px;
                 flex-shrink: 0;
-                overflow: hidden;
                 .newMsg{
                     background-color: #F74142;
-                    height: auto;
-                    width: auto;
                     padding: 0 4px;
                     bottom: -6px;
                     left: 12px;
@@ -101,13 +97,12 @@ onBeforeMount(()=>{
                     position: absolute;
                     border-radius: 12px;
                     border: solid 4px #1E1F23;
-
-                    text-align: center;
                     font-size: 12px;
                     font-weight: bold;
                     color: #FFFFEF;
 
                     pointer-events: none;
+                    transform: scale(0.8);
                 }
             }
             .info{

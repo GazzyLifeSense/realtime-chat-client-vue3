@@ -19,7 +19,7 @@
                     </div>
                     <div class="itemWrap server">
                         <img :src="getGroupAvatar(group.avatar)" :title="group.name" height=48 width=48 class="icon">
-                        <div class="newMsg" v-if="group.hasNew">{{group.hasNew}}</div>
+                        <div class="newMsg" v-if="group.hasNew">new</div>
                     </div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
             <div class="rowItem" @click="IsMessageListShow = true">
                 <div class="itemWrap" >
                     <img src="../assets/消息1.svg" title="未读消息" class="icon flex-center">
-                    <div class="pot" v-if="messageStore.messageList.length"></div>
+                    <div class="pot" v-if="messageStore.newMsgQueue.length"></div>
                 </div>
             </div>
 
@@ -146,21 +146,19 @@ function enterDiscovery(){
                 }
                 .newMsg{
                     background-color: #F74142;
-                    height: auto;
-                    width: auto;
                     padding: 0 4px;
-                    bottom: -3px;
-                    right: 0px;
+                    bottom: -2px;
+                    right: -4px;
 
                     position: absolute;
                     border-radius: 12px;
                     border: solid 4px #1E1F23;
 
                     text-align: center;
-                    font-size: .75em;
                     font-weight: bold;
                     color: #FFFFEF;
                     pointer-events: none;
+                    transform: scale(.7);
                 }
             }
             .itemWrap{

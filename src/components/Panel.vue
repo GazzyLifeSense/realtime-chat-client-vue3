@@ -13,7 +13,7 @@
             <p class="subtitle">您可以输入群组名来搜索群组。记得区分大小写哦！</p>
             <p class="input-wrap flex-center">
                 <input type="text" class="input line" v-model="groupName" placeholder="输入群组名" maxlength="13">
-                <button class="btn line" :class="{active: groupName.length}" @click="groupName.length ? applyGroup() : undefined">查找</button>
+                <button class="btn line" :class="{active: groupName.length}" @click="groupName.length ? getGroupsByName() : undefined">查找</button>
             </p>
             <ul class="list-wrap scrollbar">
                 <li class="item-wrap" v-for="group of groupList" :key="group._id">
@@ -62,8 +62,8 @@ function applyFriend(){
 }
 
 // 申请加入群组
-function applyGroup(to){
-    applyGroupAPI(userStore.user._id, to.value).then((resp)=>{
+function applyGroup(groupId){
+    applyGroupAPI(userStore.user._id, groupId).then((resp)=>{
         if (resp.code === 200) {
             ElMessage.success(resp.msg)
         }else{ ElMessage.error(resp.msg) }
