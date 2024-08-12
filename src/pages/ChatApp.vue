@@ -148,7 +148,6 @@ onMounted(async ()=>{
             });
         }else{
             // 重定向至登录页
-            ElMessage.error(resp.msg)
             router.replace("/")
         }
     })

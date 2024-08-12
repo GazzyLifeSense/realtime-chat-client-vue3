@@ -62,6 +62,7 @@ const regData = reactive({
 function toLogin(){
     userLogin(loginData).then((resp) => {
         if(resp.code == 200) router.push('/chatApp')
+        else{ ElMessage.error(resp.msg) }
     })
 }
 
