@@ -47,14 +47,6 @@
                     <div class="pot" v-if="messageStore.newMsgQueue.length"></div>
                 </div>
             </div>
-
-            <div class="separator"></div>
-
-            <div class="rowItem" @click="IsSideBarFold = !IsSideBarFold">
-                <div class="itemWrap" >
-                    <img src="../assets/折叠.svg" title="折叠" class="icon flex-center" :class="{fold: IsSideBarFold}">
-                </div>
-            </div>
         </ul>
 
         <!-- 创建群组 -->
@@ -82,7 +74,6 @@ const
     groupStore = useGroupStore()
 
 const
-    IsSideBarFold = ref(false),
     IsAddGroupShow = ref(false),
     IsMessageListShow = ref(false)
 
@@ -113,9 +104,6 @@ function enterDiscovery(){
     width: 10vw;
     max-width: 5em;
     flex-shrink: 0;
-    .fold{
-        transform: rotateY(180deg);
-    }
     .tree{
         overflow-y: auto;
         .separator{
@@ -184,10 +172,6 @@ function enterDiscovery(){
                 }
                 .icon{
                     width: 80%;
-                }
-                .fold{
-                    width: 70%;
-                    transition: 1.5s transform !important;
                 }
             }
         }
