@@ -200,12 +200,14 @@ watch(msg, (newV) => {
   }
 })
 
-watch(pageStore.page, (newV, oldV) => {
+// 聊天对象改变
+watch(()=>pageStore.page, (newV, oldV) => {
+  // 离开群聊
   if(oldV && oldV.position == 'group' && oldV.to && oldV.to._id != newV.to._id){
-          socketStore.instance.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
-        }
-        // 获取历史消息
-        messageStore.getHistoryMsgs(scrollToLatest)
+    socketStore.instance.emit('leaveGroupChat', {token: sessionStorage.getItem('securityToken'), groupId: oldV.to._id})
+  }
+  // 获取历史消息
+  messageStore.getHistoryMsgs(scrollToLatest)
 }, { deep: true, immediate: true })
 
 onMounted(() => {

@@ -83,16 +83,14 @@ export const useMessageStore = defineStore('message',{
             const pageStore = usePageStore(), userStore = useUserStore()
             if(pageStore.page.position == 'private'){
                 getPrivateMsgAPI(pageStore.page.to._id, userStore.user._id, 15,  -1).then((resp: ResponseType)=>{
-                // 获取历史消息成功
-                if(resp.code === 200){
-                    this.msgList = resp.data
-                    callback?.()
-                }else ElMessage.error(resp.msg)
+                    if(resp.code === 200){
+                        this.msgList = resp.data
+                        callback?.()
+                    }else ElMessage.error(resp.msg)
                 })
             }
             else if(pageStore.page.position == 'group'){
                 getGroupMsgAPI(pageStore.page.to._id, 15, -1).then((resp: ResponseType)=>{
-                    // 获取历史消息成功
                     if(resp.code === 200){
                         this.msgList = resp.data
                         callback?.()
