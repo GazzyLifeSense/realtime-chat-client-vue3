@@ -1,7 +1,7 @@
 <template>
 <div id="friend-list-wrap">
         <div class="title">好友 - {{ friendList.length }}</div>
-        <div class="friend-list miniscrollbar">
+        <div class="friend-list mini-scrollbar">
             <div class="list-item" v-for="friend of friendList" :key="friend._id" ref="friend" @contextmenu.prevent="showMenu(friend)">
                 <div class="avatar"  @click="enterPrivateChat(friend)">
                     <img :src="getUserAvatar(friend.avatar)" height='35' width='35'>

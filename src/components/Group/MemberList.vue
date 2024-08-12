@@ -9,7 +9,7 @@
             <img :src="getGroupBanner(pageStore.page.to.banner)" alt="服务器图片" height="135">
         </div>
         <div class="title">成员 - {{ groupStore.memberList.length }}</div>
-        <div class="member-list miniscrollbar">
+        <div class="member-list mini-scrollbar">
             <div class="list-item" v-for="member in groupStore.memberList" :key="member._id" @click.stop="showMenu($event, pageStore.page.to, member)" @contextmenu.prevent="showMenu($event, pageStore.page.to, member)">
                 <div class="avatar">
                     <img :src="getUserAvatar(userStore.user.avatar)" v-if="member._id == userStore.user._id" height='35' width='35' alt="">

@@ -11,19 +11,6 @@
             </div>
 
             <div class="separator"></div>
-            
-            <div class="groupList miniscrollbar">
-                <div class="rowItem" :class="{'active':pageStore.page.to&&pageStore.page.to._id==group._id}" v-for="group of groupStore.groupList" :key="group._id" @click="enterGroup(group)">
-                    <div class="barWrap">
-                        <span class="bar"></span>
-                    </div>
-                    <div class="itemWrap server">
-                        <img :src="getGroupAvatar(group.avatar)" :title="group.name" height=48 width=48 class="icon">
-                        <div class="newMsg" v-if="group.hasNew">new</div>
-                    </div>
-                </div>
-            </div>
-            
 
             <div class="rowItem">
                 <div class="itemWrap" @click="IsAddGroupShow = true">
@@ -42,9 +29,23 @@
             <div class="separator"></div>
 
             <div class="rowItem" @click="IsMessageListShow = true">
-                <div class="itemWrap" >
+                <div class="itemWrap">
                     <img src="../assets/消息1.svg" title="未读消息" class="icon flex-center">
                     <div class="pot" v-if="messageStore.newMsgQueue.length"></div>
+                </div>
+            </div>
+
+            <div class="separator" v-show="groupStore.groupList.length"></div>
+
+            <div class="group-li mini-scrollbar">
+                <div class="rowItem" :class="{'active':pageStore.page.to&&pageStore.page.to._id==group._id}" v-for="group of groupStore.groupList" :key="group._id" @click="enterGroup(group)">
+                    <div class="barWrap">
+                        <span class="bar"></span>
+                    </div>
+                    <div class="itemWrap server">
+                        <img :src="getGroupAvatar(group.avatar)" :title="group.name" height=48 width=48 class="icon">
+                        <div class="newMsg" v-if="group.hasNew">new</div>
+                    </div>
                 </div>
             </div>
         </ul>
@@ -105,10 +106,14 @@ function enterDiscovery(){
     max-width: 5em;
     flex-shrink: 0;
     .tree{
-        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
         .separator{
             width: 80%;
         }
+        .group-li{ overflow-y: auto; overflow-x: hidden; }
+        .group-li::-webkit-scrollbar { width: 0; }
         .rowItem{
             margin: .5em 0;
             display: flex;
@@ -166,19 +171,17 @@ function enterDiscovery(){
                 }
                 img{
                     transition: 0.5s transform;
-                    &:hover{
-                        transform: scale(1.2)
-                    }
                 }
                 .icon{
                     width: 80%;
                 }
             }
         }
-        .rowItem:hover{
+        .rowItem:hover{ 
             .bar{
                 height: 30%;
             }   
+            
         }
         .rowItem[class*="active"]{
             .bar{

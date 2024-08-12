@@ -3,7 +3,7 @@
         <div class="mask" @click.self="emit('update:show', false)"></div>
         <div class="message-list flex-center" ref='menu'>
             <img class="cancel" src="@/assets/arrowDown.svg" @click.stop="emit('update:show', false)">
-            <div class="detail-wrap flex-start-center miniscrollbar">
+            <div class="detail-wrap flex-start-center mini-scrollbar">
                 <template v-if="Array.isArray(messageStore.newMsgQueue)">
                     <div class="detail flex-between-center" v-for="message of messageStore.newMsgQueue" :key="message._id" @click="enterChat(message)">
                         <div class="left line">
