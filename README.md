@@ -1,7 +1,7 @@
 # realtime-chat-client
-Provide beautiful and convenient UI, 
+Provide beautiful and convenient UI
  - refering to popular social website <b>Discord</b> partially
- - using vue.js 、vite.js and socket.io
+ - using vue.js 、vite.js、typescript and socket.io
 ## Functions provided:
  - private/group chat: support text、link、emoji、picture sending.
  - user system: user info manage、password changing
